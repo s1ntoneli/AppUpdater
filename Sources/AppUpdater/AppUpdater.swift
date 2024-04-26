@@ -55,23 +55,31 @@ public class AppUpdater: ObservableObject {
         case invalidDownloadedBundle
     }
     
-    public func check(_ success: OnSuccess? = nil, _ failed: OnFail? = nil) {
+    public func check(success: OnSuccess? = nil, fail: OnFail? = nil) {
         Task {
             do {
                 try await checkThrowing()
                 success?()
             } catch {
-                failed?(error)
+                fail?(error)
             }
         }
     }
     
-    public func install(_ appBundle: Bundle, _ success: OnSuccess? = nil, _ failed: OnFail? = nil) {
+    public func install(success: OnSuccess? = nil, fail: OnFail? = nil) {
+        guard let appBundle = downloadedAppBundle else {
+            fail?(Error.invalidDownloadedBundle)
+            return
+        }
+        install(appBundle, success: success, fail: fail)
+    }
+
+    public func install(_ appBundle: Bundle, success: OnSuccess? = nil, fail: OnFail? = nil) {
         do {
             try installThrowing(appBundle)
             success?()
         } catch {
-            failed?(error)
+            fail?(error)
         }
     }
 

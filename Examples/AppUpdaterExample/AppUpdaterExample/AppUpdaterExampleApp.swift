@@ -17,7 +17,11 @@ struct AppUpdaterExampleApp: App {
             ContentView()
                 .environmentObject(appUpdater)
                 .task {
-//                    appUpdater.check()
+                    appUpdater.check {
+                        
+                    } fail: { err in
+                        
+                    }
                 }
         }
     }
