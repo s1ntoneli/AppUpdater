@@ -21,7 +21,7 @@ A simple app-updater for macOS, checks your GitHub releases for a binary asset a
 ## Usage
 
 ```swift
-package.dependencies.append(.package(url: "https://github.com/s1ntoneli/AppUpdater.git", from: "0.1.0"))
+package.dependencies.append(.package(url: "https://github.com/s1ntoneli/AppUpdater.git", from: "0.1.1"))
 ```
 
 Then:
