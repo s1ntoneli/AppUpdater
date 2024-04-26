@@ -72,7 +72,7 @@ public class AppUpdater: ObservableObject {
                 if csi1 == nil || csi2 == nil {
                     throw Error.codeSigningIdentity
                 }
-                return csi1 != csi2
+                return csi1 == csi2
             }
         }
 
