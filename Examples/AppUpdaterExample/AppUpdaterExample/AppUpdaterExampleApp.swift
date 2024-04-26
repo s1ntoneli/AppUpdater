@@ -17,7 +17,7 @@ struct AppUpdaterExampleApp: App {
             ContentView()
                 .environmentObject(appUpdater)
                 .task {
-//                    await appUpdater.check()
+//                    appUpdater.check()
                 }
         }
     }

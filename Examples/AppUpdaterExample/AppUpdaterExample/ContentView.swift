@@ -21,11 +21,7 @@ struct ContentView: View {
                 HStack {
                     Text("New Version Available")
                     Button {
-                        do {
-                            try appUpdater.install(appBundle)
-                        } catch {
-                            print("error", error)
-                        }
+                        appUpdater.install(appBundle)
                     } label: {
                         Text("Update Now")
                     }.buttonStyle(.borderedProminent)
@@ -37,13 +33,7 @@ struct ContentView: View {
             Divider()
             
             Button {
-                Task {
-                    do {
-                        try await appUpdater.check()
-                    } catch {
-                        print("check update error", error)
-                    }
-                }
+                appUpdater.check()
             } label: {
                 Text("Check Update")
             }

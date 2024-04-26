@@ -13,6 +13,9 @@ import Version
 import Path
 
 public class AppUpdater: ObservableObject {
+    public typealias OnSuccess = () -> Void
+    public typealias OnFail = (Swift.Error) -> Void
+
     let activity: NSBackgroundActivityScheduler
     let owner: String
     let repo: String
@@ -38,13 +41,7 @@ public class AppUpdater: ObservableObject {
             guard !self.activity.shouldDefer else {
                 return completion(.deferred)
             }
-            Task {
-                do {
-                    try await self.check()
-                } catch {
-                    NSLog("check update error \(error)")
-                }
-            }
+            self.check()
         }
     }
 
@@ -57,8 +54,28 @@ public class AppUpdater: ObservableObject {
         case codeSigningIdentity
         case invalidDownloadedBundle
     }
+    
+    public func check(_ success: OnSuccess? = nil, _ failed: OnFail? = nil) {
+        Task {
+            do {
+                try await checkThrowing()
+                success?()
+            } catch {
+                failed?(error)
+            }
+        }
+    }
+    
+    public func install(_ appBundle: Bundle, _ success: OnSuccess? = nil, _ failed: OnFail? = nil) {
+        do {
+            try installThrowing(appBundle)
+            success?()
+        } catch {
+            failed?(error)
+        }
+    }
 
-    public func check() async throws {
+    public func checkThrowing() async throws {
         guard Bundle.main.executableURL != nil else {
             return
         }
@@ -108,7 +125,7 @@ public class AppUpdater: ObservableObject {
         try await update(with: asset)
     }
     
-    public func install(_ downloadedAppBundle: Bundle) throws {
+    public func installThrowing(_ downloadedAppBundle: Bundle) throws {
         let installedAppBundle = Bundle.main
         guard let exe = downloadedAppBundle.executable, exe.exists else {
             throw Error.invalidDownloadedBundle
