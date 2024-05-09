@@ -27,6 +27,12 @@ public class AppUpdater: ObservableObject {
     
     @Published public var downloadedAppBundle: Bundle?
     
+    public var onDownloadSuccess: OnSuccess? = nil
+    public var onDownloadFail: OnFail? = nil
+    
+    public var onInstallSuccess: OnSuccess? = nil
+    public var onInstallFail: OnFail? = nil
+    
     public var allowPrereleases = false
 
     public init(owner: String, repo: String, releasePrefix: String? = nil, interval: TimeInterval = 24 * 60 * 60) {
@@ -34,14 +40,20 @@ public class AppUpdater: ObservableObject {
         self.repo = repo
         self.releasePrefix = releasePrefix ?? repo
 
-        activity = NSBackgroundActivityScheduler(identifier: "com.gokoding.AppUpdater")
+        activity = NSBackgroundActivityScheduler(identifier: "AppUpdater.\(Bundle.main.bundleIdentifier ?? "")")
         activity.repeats = true
         activity.interval = interval
         activity.schedule { [unowned self] completion in
             guard !self.activity.shouldDefer else {
                 return completion(.deferred)
             }
-            self.check()
+            self.check(success: {
+                onDownloadSuccess?()
+                completion(.finished)
+            }, fail: { err in
+                onDownloadFail?(err)
+                completion(.finished)
+            })
         }
     }
 
@@ -53,6 +65,9 @@ public class AppUpdater: ObservableObject {
         case bundleExecutableURL
         case codeSigningIdentity
         case invalidDownloadedBundle
+        case noValidUpdate
+        case unzipFailed
+        case downloadFailed
     }
     
     public func check(success: OnSuccess? = nil, fail: OnFail? = nil) {
@@ -78,14 +93,16 @@ public class AppUpdater: ObservableObject {
         do {
             try installThrowing(appBundle)
             success?()
+            onInstallSuccess?()
         } catch {
             fail?(error)
+            onInstallFail?(error)
         }
     }
 
     public func checkThrowing() async throws {
         guard Bundle.main.executableURL != nil else {
-            return
+            throw Error.bundleExecutableURL
         }
         let currentVersion = Bundle.main.version
 
@@ -108,9 +125,13 @@ public class AppUpdater: ObservableObject {
 
             let tmpdir = try FileManager.default.url(for: .itemReplacementDirectory, in: .userDomainMask, appropriateFor: Bundle.main.bundleURL, create: true)
 
-            guard let (dst, _) = try await URLSession.shared.downloadTask(with: asset.browser_download_url, to: tmpdir.appendingPathComponent("download")) else { return }
+            guard let (dst, _) = try await URLSession.shared.downloadTask(with: asset.browser_download_url, to: tmpdir.appendingPathComponent("download")) else {
+                throw Error.downloadFailed
+            }
             
-            guard let unziped = try await unzip(dst, contentType: asset.content_type) else { return }
+            guard let unziped = try await unzip(dst, contentType: asset.content_type) else {
+                throw Error.unzipFailed
+            }
             
             let downloadedAppBundle = Bundle(url: unziped)!
 
@@ -118,17 +139,21 @@ public class AppUpdater: ObservableObject {
                 Task { @MainActor in
                     self.downloadedAppBundle = downloadedAppBundle
                 }
+            } else {
+                throw Error.codeSigningIdentity
             }
         }
 
         let url = URL(string: "https://api.github.com/repos/\(slug)/releases")!
 
         guard let task = try await URLSession.shared.dataTask(with: url)?.validate() else {
-            return
+            throw Error.bundleExecutableURL
         }
         let releases = try JSONDecoder().decode([Release].self, from: task.data)
 
-        guard let asset = try releases.findViableUpdate(appVersion: currentVersion, releasePrefix: self.releasePrefix, prerelease: self.allowPrereleases) else { return }
+        guard let asset = try releases.findViableUpdate(appVersion: currentVersion, releasePrefix: self.releasePrefix, prerelease: self.allowPrereleases) else {
+            throw Error.noValidUpdate
+        }
 
         try await update(with: asset)
     }
