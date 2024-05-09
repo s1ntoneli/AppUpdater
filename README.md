@@ -40,6 +40,44 @@ appUpdater.install { // success } fail: { err in // failed }
 appUpdater.install(appBundle)
 ```
 
+// for auto checking
+
+// If you only care about new updates: subscribe the observable object
+appUpdater.$downloadedAppBundle
+    .sink { newBundle in
+        if let newBundle {
+            // do success things
+            print("newBundle")
+            appUpdater.install()
+        }
+    }
+    .store(in: &cancellables)
+
+// If you prefer callbacks instead
+appUpdater.onDownloadSuccess = {
+    // do success things
+    print("download success")
+    appUpdater.install()
+}
+
+// and want to get notified when download failed
+appUpdater.onDownloadFail = { err in
+    // do failing things
+    print("download failed")
+}
+
+// Get notified when install success
+// but now you won't get a callback because the application will restart when the installation is successful
+appUpdater.onInstallSuccess = {
+    // do success things
+    print("install success")
+}
+
+// Get notified when install failed
+appUpdater.onInstallFail = { err in
+    // do failing things
+    print("install failed")
+
 Demo:
 
 ```swift
