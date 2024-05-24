@@ -38,7 +38,6 @@ appUpdater.check { // success } fail: { err in // failed }
 appUpdater.install()
 appUpdater.install { // success } fail: { err in // failed }
 appUpdater.install(appBundle)
-```
 
 // for auto checking
 
@@ -60,23 +59,25 @@ appUpdater.onDownloadSuccess = {
     appUpdater.install()
 }
 
-// and want to get notified when download failed
+// and want to get notified when download fails
 appUpdater.onDownloadFail = { err in
     // do failing things
     print("download failed")
 }
 
-// Get notified when install success
+// Get notified when install succeeds
 // but now you won't get a callback because the application will restart when the installation is successful
 appUpdater.onInstallSuccess = {
     // do success things
     print("install success")
 }
 
-// Get notified when install failed
+// Get notified when install fails
 appUpdater.onInstallFail = { err in
     // do failing things
     print("install failed")
+}
+```
 
 Demo:
 
