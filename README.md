@@ -122,4 +122,4 @@ struct ContentView: View {
 ## My Apps
 * [CleanClip](https://cleanclip.cc): The cleanest clipboard manager on macOS.
 * [Macaify](https://macaify.com): Fast use of ChatGPT on macOS.
-* [SecureClipX](https://secureclipx.cleanclip.cc): A secure clipboard to copy and paste.
+* [Copi](https://copi.cleanclip.cc): A secure clipboard to copy and paste.
