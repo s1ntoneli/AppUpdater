@@ -204,7 +204,7 @@ private struct Release: Decodable {
             switch (name, asset.content_type) {
             case ("\(prefix).tar", .tar):
                 return true
-            case (prefix, _):
+            case (prefix, .zip):
                 return true
             default:
                 return false
@@ -221,12 +221,13 @@ private enum ContentType: Decodable {
         case "application/zip":
             self = .zip
         default:
-            throw AUError.badInput
+            self = .unknown
         }
     }
 
     case zip
     case tar
+    case unknown
 }
 
 extension Release: Comparable {
@@ -264,6 +265,8 @@ private func unzip(_ url: URL, contentType: ContentType) async throws -> URL? {
     case .zip:
         proc.launchPath = "/usr/bin/unzip"
         proc.arguments = [url.path]
+    default:
+        throw AUError.badInput
     }
 
     func findApp() async throws -> URL? {
