@@ -11,7 +11,7 @@ import Combine
 
 @main
 struct AppUpdaterExampleApp: App {
-    @StateObject var appUpdater = AppUpdater(owner: "s1ntoneli", repo: "AppUpdater", releasePrefix: "AppUpdaterExample", interval: 3 * 60 * 60)
+    @StateObject var appUpdater = AppUpdater(owner: "s1ntoneli", repo: "AppUpdater", releasePrefix: "AppUpdaterExample", interval: 3 * 60 * 60, proxy: GithubProxy())
 
     @State private var cancellables = Set<AnyCancellable>()
     

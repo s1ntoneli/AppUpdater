@@ -12,6 +12,7 @@
 		698394632BDB8C5A004B5C11 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 698394622BDB8C5A004B5C11 /* Assets.xcassets */; };
 		698394662BDB8C5A004B5C11 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 698394652BDB8C5A004B5C11 /* Preview Assets.xcassets */; };
 		698394742BDB8D3B004B5C11 /* AppUpdater in Frameworks */ = {isa = PBXBuildFile; productRef = 698394732BDB8D3B004B5C11 /* AppUpdater */; };
+		6983DB8D2C4EC0120033FE92 /* GithubProxy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6983DB8C2C4EC0120033FE92 /* GithubProxy.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -22,6 +23,7 @@
 		698394652BDB8C5A004B5C11 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		698394672BDB8C5A004B5C11 /* AppUpdaterExample.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = AppUpdaterExample.entitlements; sourceTree = "<group>"; };
 		698394712BDB8D1E004B5C11 /* AppUpdater */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = AppUpdater; path = ../../..; sourceTree = "<group>"; };
+		6983DB8C2C4EC0120033FE92 /* GithubProxy.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GithubProxy.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -57,6 +59,7 @@
 		6983945D2BDB8C58004B5C11 /* AppUpdaterExample */ = {
 			isa = PBXGroup;
 			children = (
+				6983DB8C2C4EC0120033FE92 /* GithubProxy.swift */,
 				6983945E2BDB8C58004B5C11 /* AppUpdaterExampleApp.swift */,
 				698394602BDB8C58004B5C11 /* ContentView.swift */,
 				698394622BDB8C5A004B5C11 /* Assets.xcassets */,
@@ -163,6 +166,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				698394612BDB8C58004B5C11 /* ContentView.swift in Sources */,
+				6983DB8D2C4EC0120033FE92 /* GithubProxy.swift in Sources */,
 				6983945F2BDB8C58004B5C11 /* AppUpdaterExampleApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -308,7 +312,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 12.0;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.gokoding.AppUpdaterExample;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -336,7 +340,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 12.0;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.gokoding.AppUpdaterExample;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;

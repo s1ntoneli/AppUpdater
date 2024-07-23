@@ -10,13 +10,13 @@ import Foundation
 extension URLSession {
     typealias TaskResult = (data: Data?, response: URLResponse?)
     
-    func dataTask(with convertible: URLRequestConvertible) async throws -> URLTaskResult? {
+    func dataTask(with convertible: URLRequestConvertible, proxy: URLRequestProxy? = nil) async throws -> URLTaskResult? {
         #if DEBUG
-        print("dataTask", convertible)
+        print("dataTask", convertible, convertible.request.applyOrOriginal(proxy: proxy))
         #endif
         
         return try await withCheckedThrowingContinuation { continuation in
-            dataTask(with: convertible.request) { data, response, err in
+            dataTask(with: convertible.request.applyOrOriginal(proxy: proxy)) { data, response, err in
                 guard let data, let response else {
                     continuation.resume(throwing: err ?? AUError.invalidCallingConvention)
                     return
@@ -26,9 +26,12 @@ extension URLSession {
         }
     }
     
-    func downloadTask(with convertible: URLRequestConvertible, to saveLocation: URL) async throws -> (saveLocation: URL, response: URLResponse)? {
+    func downloadTask(with convertible: URLRequestConvertible, to saveLocation: URL, proxy: URLRequestProxy? = nil) async throws -> (saveLocation: URL, response: URLResponse)? {
+        #if DEBUG
+        print("downloadTask", convertible, convertible.request.applyOrOriginal(proxy: proxy))
+        #endif
         return try await withCheckedThrowingContinuation { continuation in
-            downloadTask(with: convertible.request, completionHandler: { tmp, rsp, err in
+            downloadTask(with: convertible.request.applyOrOriginal(proxy: proxy), completionHandler: { tmp, rsp, err in
                 if let error = err {
                     continuation.resume(throwing: error)
                 } else if let rsp = rsp, let tmp = tmp {
@@ -59,6 +62,9 @@ extension URLRequest: URLRequestConvertible {
 }
 extension URL: URLRequestConvertible {
     public var request: URLRequest { return URLRequest(url: self) }
+}
+extension String: URLRequestConvertible {
+    public var request: URLRequest { return URLRequest(url: URL(string: self)!) }
 }
 
 extension URLTaskResult {

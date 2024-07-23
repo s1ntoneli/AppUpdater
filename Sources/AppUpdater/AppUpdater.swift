@@ -25,6 +25,8 @@ public class AppUpdater: ObservableObject {
         return "\(owner)/\(repo)"
     }
     
+    var proxy: URLRequestProxy?
+    
     @Published public var downloadedAppBundle: Bundle?
     
     public var onDownloadSuccess: OnSuccess? = nil
@@ -35,10 +37,11 @@ public class AppUpdater: ObservableObject {
     
     public var allowPrereleases = false
 
-    public init(owner: String, repo: String, releasePrefix: String? = nil, interval: TimeInterval = 24 * 60 * 60) {
+    public init(owner: String, repo: String, releasePrefix: String? = nil, interval: TimeInterval = 24 * 60 * 60, proxy: URLRequestProxy? = nil) {
         self.owner = owner
         self.repo = repo
         self.releasePrefix = releasePrefix ?? repo
+        self.proxy = proxy
 
         activity = NSBackgroundActivityScheduler(identifier: "AppUpdater.\(Bundle.main.bundleIdentifier ?? "")")
         activity.repeats = true
@@ -125,7 +128,7 @@ public class AppUpdater: ObservableObject {
 
             let tmpdir = try FileManager.default.url(for: .itemReplacementDirectory, in: .userDomainMask, appropriateFor: Bundle.main.bundleURL, create: true)
 
-            guard let (dst, _) = try await URLSession.shared.downloadTask(with: asset.browser_download_url, to: tmpdir.appendingPathComponent("download")) else {
+            guard let (dst, _) = try await URLSession.shared.downloadTask(with: asset.browser_download_url, to: tmpdir.appendingPathComponent("download"), proxy: proxy) else {
                 throw Error.downloadFailed
             }
             
@@ -146,7 +149,7 @@ public class AppUpdater: ObservableObject {
 
         let url = URL(string: "https://api.github.com/repos/\(slug)/releases")!
 
-        guard let task = try await URLSession.shared.dataTask(with: url)?.validate() else {
+        guard let task = try await URLSession.shared.dataTask(with: url, proxy: proxy)?.validate() else {
             throw Error.bundleExecutableURL
         }
         let releases = try JSONDecoder().decode([Release].self, from: task.data)
