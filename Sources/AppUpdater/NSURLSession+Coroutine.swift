@@ -39,7 +39,7 @@ extension URLSession {
                         try FileManager.default.moveItem(at: tmp, to: saveLocation)
                         continuation.resume(returning: (saveLocation: saveLocation, response: rsp))
                     } catch {
-                        continuation.resume(returning: nil)
+                        continuation.resume(throwing: error)
                     }
                 } else {
                     continuation.resume(throwing: AUError.invalidCallingConvention)

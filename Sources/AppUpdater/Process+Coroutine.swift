@@ -33,6 +33,8 @@ extension Process {
             throw error
         }
 
+        stdout.fileHandleForReading.readDataToEndOfFile()
+
         self.waitUntilExit()
 
         guard self.terminationReason == .exit, self.terminationStatus == 0 else {

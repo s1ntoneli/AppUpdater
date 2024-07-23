@@ -131,14 +131,25 @@ public class AppUpdater: ObservableObject {
             guard let (dst, _) = try await URLSession.shared.downloadTask(with: asset.browser_download_url, to: tmpdir.appendingPathComponent("download"), proxy: proxy) else {
                 throw Error.downloadFailed
             }
-            
+            #if DEBUG
+            print("notice: AppUpdater downloaded:", dst)
+            #endif
+
             guard let unziped = try await unzip(dst, contentType: asset.content_type) else {
                 throw Error.unzipFailed
             }
             
+            #if DEBUG
+            print("notice: AppUpdater unziped", unziped)
+            #endif
+            
             let downloadedAppBundle = Bundle(url: unziped)!
 
             if try await validate(codeSigning: .main, downloadedAppBundle) {
+                #if DEBUG
+                print("notice: AppUpdater validated", dst)
+                #endif
+
                 Task { @MainActor in
                     self.downloadedAppBundle = downloadedAppBundle
                 }
