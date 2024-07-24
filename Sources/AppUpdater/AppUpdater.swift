@@ -257,6 +257,7 @@ public struct Release: Decodable {
     public let assets: [Asset]
     public let body: String
     public let name: String
+    public let html_url: String
 
     func viableAsset(forRelease releasePrefix: String) -> Asset? {
         return assets.first(where: { (asset) -> Bool in
