@@ -27,7 +27,12 @@ public class AppUpdater: ObservableObject {
     
     var proxy: URLRequestProxy?
     
+    @available(*, deprecated, message: "This variable is deprecated. Use state instead.")
     @Published public var downloadedAppBundle: Bundle?
+    
+    /// update state
+    @MainActor
+    @Published public var state: UpdateState = .none
     
     public var onDownloadSuccess: OnSuccess? = nil
     public var onDownloadFail: OnFail? = nil
@@ -36,6 +41,16 @@ public class AppUpdater: ObservableObject {
     public var onInstallFail: OnFail? = nil
     
     public var allowPrereleases = false
+    
+    private var progressTimer: Timer? = nil
+    
+    private lazy var session: URLSession = {
+        let config = URLSessionConfiguration.default
+        config.shouldUseExtendedBackgroundIdleMode = true
+        config.timeoutIntervalForRequest = 3 * 60
+        
+        return URLSession(configuration: config)
+    }()
 
     public init(owner: String, repo: String, releasePrefix: String? = nil, interval: TimeInterval = 24 * 60 * 60, proxy: URLRequestProxy? = nil) {
         self.owner = owner
@@ -121,16 +136,38 @@ public class AppUpdater: ObservableObject {
             }
         }
 
-        func update(with asset: Release.Asset) async throws {
+        func update(with asset: Release.Asset, belongs release: Release) async throws -> Bundle? {
             #if DEBUG
             print("notice: AppUpdater dry-run:", asset)
             #endif
 
             let tmpdir = try FileManager.default.url(for: .itemReplacementDirectory, in: .userDomainMask, appropriateFor: Bundle.main.bundleURL, create: true)
 
-            guard let (dst, _) = try await URLSession.shared.downloadTask(with: asset.browser_download_url, to: tmpdir.appendingPathComponent("download"), proxy: proxy) else {
+            let downloadState = try await session.downloadTask(with: asset.browser_download_url, to: tmpdir.appendingPathComponent("download"), proxy: proxy)
+            
+            var dst: URL? = nil
+            for try await state in downloadState {
+                switch state {
+                case .progress(let progress):
+                    DispatchQueue.main.async {
+                        self.progressTimer?.invalidate()
+                        self.progressTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { _ in
+                            self.notifyStateChanged(newState: .downloading(release, asset, fraction: progress.fractionCompleted))
+                        }
+                    }
+
+                    break
+                case .finished(let saveLocation, _):
+                    dst = saveLocation
+                    progressTimer?.invalidate()
+                    progressTimer = nil
+                }
+            }
+            
+            guard let dst = dst else {
                 throw Error.downloadFailed
             }
+            
             #if DEBUG
             print("notice: AppUpdater downloaded:", dst)
             #endif
@@ -150,9 +187,7 @@ public class AppUpdater: ObservableObject {
                 print("notice: AppUpdater validated", dst)
                 #endif
 
-                Task { @MainActor in
-                    self.downloadedAppBundle = downloadedAppBundle
-                }
+                return downloadedAppBundle
             } else {
                 throw Error.codeSigningIdentity
             }
@@ -165,11 +200,20 @@ public class AppUpdater: ObservableObject {
         }
         let releases = try JSONDecoder().decode([Release].self, from: task.data)
 
-        guard let asset = try releases.findViableUpdate(appVersion: currentVersion, releasePrefix: self.releasePrefix, prerelease: self.allowPrereleases) else {
+        guard let (release, asset) = try releases.findViableUpdate(appVersion: currentVersion, releasePrefix: self.releasePrefix, prerelease: self.allowPrereleases) else {
             throw Error.noValidUpdate
         }
+        
+        notifyStateChanged(newState: .newVersionDetected(release, asset))
 
-        try await update(with: asset)
+        if let bundle = try await update(with: asset, belongs: release) {
+            /// @deprecated
+            Task { @MainActor in
+                self.downloadedAppBundle = bundle
+            }
+            /// in new version:
+            notifyStateChanged(newState: .downloaded(release, asset, bundle))
+        }
     }
     
     public func installThrowing(_ downloadedAppBundle: Bundle) throws {
@@ -194,17 +238,25 @@ public class AppUpdater: ObservableObject {
         //TODO be reliable! Probably get an external applescript to ask us this one to quit then exec the new one
         NSApp.terminate(self)
     }
+    
+    private func notifyStateChanged(newState: UpdateState) {
+        Task { @MainActor in
+            state = newState
+        }
+    }
 }
 
-private struct Release: Decodable {
-    let tag_name: Version
-    let prerelease: Bool
-    struct Asset: Decodable {
+public struct Release: Decodable {
+    public let tag_name: Version
+    public let prerelease: Bool
+    public struct Asset: Decodable {
         let name: String
         let browser_download_url: URL
         let content_type: ContentType
     }
-    let assets: [Asset]
+    public let assets: [Asset]
+    public let body: String
+    public let name: String
 
     func viableAsset(forRelease releasePrefix: String) -> Asset? {
         return assets.first(where: { (asset) -> Bool in
@@ -227,8 +279,8 @@ private struct Release: Decodable {
     }
 }
 
-private enum ContentType: Decodable {
-    init(from decoder: Decoder) throws {
+public enum ContentType: Decodable {
+    public init(from decoder: Decoder) throws {
         switch try decoder.singleValueContainer().decode(String.self) {
         case "application/x-bzip2", "application/x-xz", "application/x-gzip":
             self = .tar
@@ -245,21 +297,22 @@ private enum ContentType: Decodable {
 }
 
 extension Release: Comparable {
-    static func < (lhs: Release, rhs: Release) -> Bool {
+    public static func < (lhs: Release, rhs: Release) -> Bool {
         return lhs.tag_name < rhs.tag_name
     }
 
-    static func == (lhs: Release, rhs: Release) -> Bool {
+    public static func == (lhs: Release, rhs: Release) -> Bool {
         return lhs.tag_name == rhs.tag_name
     }
 }
 
 private extension Array where Element == Release {
-    func findViableUpdate(appVersion: Version, releasePrefix: String, prerelease: Bool) throws -> Release.Asset? {
+    func findViableUpdate(appVersion: Version, releasePrefix: String, prerelease: Bool) throws -> (Release, Release.Asset)? {
         let suitableReleases = prerelease ? self : filter { !$0.prerelease }
         guard let latestRelease = suitableReleases.sorted().last else { return nil }
         guard appVersion < latestRelease.tag_name else { throw AUError.cancelled }
-        return latestRelease.viableAsset(forRelease: releasePrefix)
+        guard let asset = latestRelease.viableAsset(forRelease: releasePrefix) else { return nil }
+        return (latestRelease, asset)
     }
 }
 

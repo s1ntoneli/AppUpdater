@@ -17,19 +17,38 @@ struct ContentView: View {
                 .imageScale(.large)
                 .foregroundStyle(.tint)
             Text("Version: \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "")")
-            if let appBundle = appUpdater.downloadedAppBundle {
-                HStack {
+            
+            if case .none = appUpdater.state {
+                Text("No New Version")
+            } else {
+                // changelog
+                if let release = appUpdater.state.release {
+                    Text(release.body)
+                }
+                
+                // new version detected
+                if case .newVersionDetected = appUpdater.state {
+                    Text("New Version Detected")
+                        .bold()
+                }
+                
+                // downloading
+                if case .downloading(_, _, let fraction) = appUpdater.state {
+                    Text("Downloading \(fraction)")
+                        .bold()
+                }
+                
+                // new bundle is ready to install
+                if case .downloaded(_, _, let newBundle) = appUpdater.state {
                     Text("New Version Available")
+                        .bold()
                     Button {
-                        appUpdater.install(appBundle)
+                        appUpdater.install(newBundle)
                     } label: {
                         Text("Update Now")
                     }.buttonStyle(.borderedProminent)
                 }
-            } else {
-                Text("No New Version")
             }
-            
             Divider()
             
             Button {

@@ -26,25 +26,33 @@ extension URLSession {
         }
     }
     
-    func downloadTask(with convertible: URLRequestConvertible, to saveLocation: URL, proxy: URLRequestProxy? = nil) async throws -> (saveLocation: URL, response: URLResponse)? {
+    func downloadTask(with convertible: URLRequestConvertible, to saveLocation: URL, proxy: URLRequestProxy? = nil) async throws -> AsyncThrowingStream<DownloadingState, Error> {
         #if DEBUG
         print("downloadTask", convertible, convertible.request.applyOrOriginal(proxy: proxy))
         #endif
-        return try await withCheckedThrowingContinuation { continuation in
-            downloadTask(with: convertible.request.applyOrOriginal(proxy: proxy), completionHandler: { tmp, rsp, err in
-                if let error = err {
-                    continuation.resume(throwing: error)
-                } else if let rsp = rsp, let tmp = tmp {
-                    do {
-                        try FileManager.default.moveItem(at: tmp, to: saveLocation)
-                        continuation.resume(returning: (saveLocation: saveLocation, response: rsp))
-                    } catch {
-                        continuation.resume(throwing: error)
+
+        return AsyncThrowingStream<DownloadingState, Error> { continuation in
+            Task(priority: .userInitiated) { [weak self] in
+                guard let self else { return }
+                
+                let task = downloadTask(with: convertible.request.applyOrOriginal(proxy: proxy)) { tmp, rso, err in
+                    if let error = err {
+                        continuation.finish(throwing: error)
+                    } else if let rsp = rso, let tmp = tmp {
+                        do {
+                            try FileManager.default.moveItem(at: tmp, to: saveLocation)
+                            continuation.yield(.finished(saveLocation: saveLocation, response: rsp))
+                            continuation.finish()
+                        } catch {
+                            continuation.finish(throwing: error)
+                        }
+                    } else {
+                        continuation.finish(throwing: AUError.invalidCallingConvention)
                     }
-                } else {
-                    continuation.resume(throwing: AUError.invalidCallingConvention)
                 }
-            }).resume()
+                continuation.yield(.progress(task.progress))
+                task.resume()
+            }
         }
    }
 }
@@ -137,3 +145,8 @@ public enum CRTHTTPError: Error, LocalizedError, CustomStringConvertible {
     }
 }
 #endif
+
+enum DownloadingState {
+    case progress(Progress)
+    case finished(saveLocation: URL, response: URLResponse)
+}
