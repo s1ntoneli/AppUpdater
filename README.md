@@ -1,115 +1,58 @@
 # AppUpdater
-A simple app-updater for macOS, checks your GitHub releases for a binary asset and silently updates your app.
+A simple app-updater for macOS, checks your GitHub releases for a binary asset and silently updates your app. 
 
 ![CleanShot 2024-04-26 at 18 49 42@2x](https://github.com/s1ntoneli/AppUpdater/assets/2681464/5cb7d9db-3b27-4b96-818e-0df57a012615)
 
+AppUpdater is a rewrite of [mxcl](https://github.com/mxcl)'s [AppUpdater](https://github.com/mxcl/AppUpdater), because I don't want to depend on the PromiseKit it uses and would prefer to implement it using async/await.
+
 ## Caveats
 
-* We make no allowances for ensuring your app is not being actively used by the user
-    at the time of update. PR welcome.
-* Assets must be named: `\(reponame)-\(semanticVersion).ext`. See [semantics Version](https://github.com/mxcl/Version)
-* Will not work if App is installed as a root user.
+* Assets must be named: `\(name)-\(semanticVersion).ext`. See [Semantic Version](https://github.com/mxcl/Version)
+* Only non-sandboxed apps are supported
 
-## Features
+## Features  
 
 * Full semantic versioning support: we understand alpha/beta etc.
-* We check the code-sign identity of the download matches the app that is
-    running before doing the update. Thus if you don’t code-sign I’m not sure what
-    would happen.
+* We check that the code-sign identity of the download matches the running app before updating. So if you don't code-sign I'm not sure what would happen.
 * We support zip files or tarballs.
+* We support a proxy parameter for those unable to normally access GitHub
 
-## Usage
+## Super Easy to Use
 
-```swift
-package.dependencies.append(.package(url: "https://github.com/s1ntoneli/AppUpdater.git", from: "0.1.1"))
+### Swift Package Manager
+```swift 
+package.dependencies.append(.package(url: "https://github.com/s1ntoneli/AppUpdater.git", from: "0.1.5"))
 ```
 
-Then:
-
+### Initialize
 ```swift
-// init
-var appUpdater = AppUpdater(owner: "s1ntoneli", repo: "AppUpdater", releasePrefix: "AppUpdaterExample", interval: 3 * 60 * 60)
+var appUpdater = AppUpdater(owner: "s1ntoneli", repo: "AppUpdater")
+```
 
-// check and auto download
+### Check for Updates and Auto Download
+```swift
 appUpdater.check()
-appUpdater.check { // success } fail: { err in // failed }
-
-// install
-appUpdater.install()
-appUpdater.install { // success } fail: { err in // failed }
-appUpdater.install(appBundle)
-
-// for auto checking
-
-// If you only care about new updates: subscribe the observable object
-appUpdater.$downloadedAppBundle
-    .sink { newBundle in
-        if let newBundle {
-            // do success things
-            print("newBundle")
-            appUpdater.install()
-        }
-    }
-    .store(in: &cancellables)
-
-// If you prefer callbacks instead
-appUpdater.onDownloadSuccess = {
-    // do success things
-    print("download success")
-    appUpdater.install()
-}
-
-// and want to get notified when download fails
-appUpdater.onDownloadFail = { err in
-    // do failing things
-    print("download failed")
-}
-
-// Get notified when install succeeds
-// but now you won't get a callback because the application will restart when the installation is successful
-appUpdater.onInstallSuccess = {
-    // do success things
-    print("install success")
-}
-
-// Get notified when install fails
-appUpdater.onInstallFail = { err in
-    // do failing things
-    print("install failed")
-}
 ```
 
-Demo:
-
+### Manual Install
 ```swift
-struct ContentView: View {
-    @EnvironmentObject var appUpdater: AppUpdater
-    
-    var body: some View {
-        VStack {
-            if let appBundle = appUpdater.downloadedAppBundle {
-                HStack {
-                    Text("New Version Available")
-                    Button {
-                        appUpdater.install(appBundle)
-                    } label: {
-                        Text("Update Now")
-                    }.buttonStyle(.borderedProminent)
-                }
-            } else {
-                Text("No New Version")
-            }
-            
-            Button {
-                appUpdater.check()
-            } label: {
-                Text("Check Update")
-            }
-        }
-    }
-}
-
+appUpdater.install()
 ```
+
+### SwiftUI
+**AppUpdater is an ObservableObject**, can be used directly in SwiftUI.
+
+### More Usage
+
+See the [AppUpdaterExample](https://github.com/s1ntoneli/AppUpdater/tree/main/Examples/AppUpdaterExample/AppUpdaterExample) project:
+
+**Initialize, Listen:** [AppUpdaterExampleApp.swift](https://github.com/s1ntoneli/AppUpdater/blob/main/Examples/AppUpdaterExample/AppUpdaterExample/AppUpdaterExampleApp.swift)
+
+**SwiftUI Usage:** [ContentView.swift](https://github.com/s1ntoneli/AppUpdater/blob/main/Examples/AppUpdaterExample/AppUpdaterExample/ContentView.swift)
+
+**Implement Custom Proxy:** [GithubProxy.swift](https://github.com/s1ntoneli/AppUpdater/blob/main/Examples/AppUpdaterExample/AppUpdaterExample/GithubProxy.swift)
+
+**Proxy Implementation Reference Gist:** [github-api-proxy.js](https://gist.github.com/s1ntoneli/69ef19899710d25c77a93e9b6e433c5b)
 
 ## Alternatives
 
