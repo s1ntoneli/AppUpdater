@@ -1,7 +1,9 @@
 # AppUpdater
 A simple app-updater for macOS, checks your GitHub releases for a binary asset and silently updates your app. 
 
-![CleanShot 2024-04-26 at 18 49 42@2x](https://github.com/s1ntoneli/AppUpdater/assets/2681464/5cb7d9db-3b27-4b96-818e-0df57a012615)
+**English** · [简体中文](./README-zh.md)
+
+https://github.com/user-attachments/assets/8bc9221d-365e-43ba-99d5-dc5cbd565959
 
 AppUpdater is a rewrite of [mxcl](https://github.com/mxcl)'s [AppUpdater](https://github.com/mxcl/AppUpdater), because I don't want to depend on the PromiseKit it uses and would prefer to implement it using async/await.
 
@@ -9,6 +11,7 @@ AppUpdater is a rewrite of [mxcl](https://github.com/mxcl)'s [AppUpdater](https:
 
 * Assets must be named: `\(name)-\(semanticVersion).ext`. See [Semantic Version](https://github.com/mxcl/Version)
 * Only non-sandboxed apps are supported
+* Implement a settings update page suitable for SwiftUI
 
 ## Features  
 
@@ -48,7 +51,7 @@ See the [AppUpdaterExample](https://github.com/s1ntoneli/AppUpdater/tree/main/Ex
 
 **Initialize, Listen:** [AppUpdaterExampleApp.swift](https://github.com/s1ntoneli/AppUpdater/blob/main/Examples/AppUpdaterExample/AppUpdaterExample/AppUpdaterExampleApp.swift)
 
-**SwiftUI Usage:** [ContentView.swift](https://github.com/s1ntoneli/AppUpdater/blob/main/Examples/AppUpdaterExample/AppUpdaterExample/ContentView.swift)
+**SwiftUI AppUpdaterSettings：** [AppUpdaterSettings.swift](https://github.com/s1ntoneli/AppUpdater/blob/main/Examples/AppUpdaterExample/AppUpdaterExample/AppUpdaterSettings.swift)
 
 **Implement Custom Proxy:** [GithubProxy.swift](https://github.com/s1ntoneli/AppUpdater/blob/main/Examples/AppUpdaterExample/AppUpdaterExample/GithubProxy.swift)
 
