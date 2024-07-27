@@ -11,46 +11,60 @@ import Combine
 
 @main
 struct AppUpdaterExampleApp: App {
-    @StateObject var appUpdater = AppUpdater(owner: "s1ntoneli", repo: "AppUpdater-Test", releasePrefix: "AppUpdaterExample", interval: 3 * 60 * 60, proxy: GithubProxy())
-
-    @State private var cancellables = Set<AnyCancellable>()
+    @NSApplicationDelegateAdaptor(AppDelegate.self)
+    var appDelegate
+    
+    @State
+    var appUpdater = AppUpdaterHelper.shared
     
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .environmentObject(appUpdater)
-                .task {
-                    appUpdater.check {
-                        print("manual check success")
-                    } fail: { err in
-                        print("manual check failed", err)
-                    }
-                    appUpdater.$downloadedAppBundle
-                        .sink { newBundle in
-                            if let newBundle {
-                                // do success things
-                                print("newBundle")
-                            }
-                        }
-                        .store(in: &cancellables)
-                    appUpdater.onDownloadSuccess = {
-                        // do success things
-                        print("download success")
-                        appUpdater.install()
-                    }
-                    appUpdater.onDownloadFail = { err in
-                        // do failing things
-                        print("download failed")
-                    }
-                    appUpdater.onInstallSuccess = {
-                        // do success things
-                        print("install success")
-                    }
-                    appUpdater.onInstallFail = { err in
-                        // do failing things
-                        print("install failed")
-                    }
+                .frame(width: 745, height: 515)
+                .environmentObject(appUpdater.appUpdater)
+        }
+        .windowResizability(.contentSize)
+    }
+}
+
+class AppDelegate: NSObject, NSApplicationDelegate {
+    private var cancellables = Set<AnyCancellable>()
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        /// AppUpdater initializer
+        AppUpdaterHelper.shared.initialize()
+        /// checking updates
+        let appUpdater = AppUpdaterHelper.shared.appUpdater
+        
+        appUpdater.check {
+            print("manual check success")
+        } fail: { err in
+            print("manual check failed", err)
+        }
+        appUpdater.$downloadedAppBundle
+            .sink { newBundle in
+                if let newBundle {
+                    // do success things
+                    print("newBundle")
                 }
+            }
+            .store(in: &cancellables)
+        appUpdater.onDownloadSuccess = {
+            // do success things
+            print("download success")
+            appUpdater.install()
+        }
+        appUpdater.onDownloadFail = { err in
+            // do failing things
+            print("download failed")
+        }
+        appUpdater.onInstallSuccess = {
+            // do success things
+            print("install success")
+        }
+        appUpdater.onInstallFail = { err in
+            // do failing things
+            print("install failed")
         }
     }
 }

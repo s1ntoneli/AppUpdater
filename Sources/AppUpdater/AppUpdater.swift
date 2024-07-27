@@ -247,17 +247,24 @@ public class AppUpdater: ObservableObject {
 }
 
 public struct Release: Decodable {
-    public let tag_name: Version
+    let tag_name: Version
+    public var tagName: Version { tag_name }
+    
     public let prerelease: Bool
     public struct Asset: Decodable {
-        let name: String
+        public let name: String
         let browser_download_url: URL
+        public var downloadUrl: URL { browser_download_url }
+        
         let content_type: ContentType
+        public var contentTyle: ContentType { content_type }
     }
     public let assets: [Asset]
     public let body: String
     public let name: String
-    public let html_url: String
+    
+    let html_url: String
+    public var htmlUrl: String { html_url }
 
     func viableAsset(forRelease releasePrefix: String) -> Asset? {
         return assets.first(where: { (asset) -> Bool in

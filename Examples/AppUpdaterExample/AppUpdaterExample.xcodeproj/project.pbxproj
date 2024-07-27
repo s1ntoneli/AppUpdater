@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		692035482C5490460069C1ED /* AppUpdaterHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 692035472C5490460069C1ED /* AppUpdaterHelper.swift */; };
 		6983945F2BDB8C58004B5C11 /* AppUpdaterExampleApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6983945E2BDB8C58004B5C11 /* AppUpdaterExampleApp.swift */; };
 		698394612BDB8C58004B5C11 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 698394602BDB8C58004B5C11 /* ContentView.swift */; };
 		698394632BDB8C5A004B5C11 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 698394622BDB8C5A004B5C11 /* Assets.xcassets */; };
@@ -16,6 +17,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		692035472C5490460069C1ED /* AppUpdaterHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppUpdaterHelper.swift; sourceTree = "<group>"; };
 		6983945B2BDB8C58004B5C11 /* AppUpdaterExample.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AppUpdaterExample.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6983945E2BDB8C58004B5C11 /* AppUpdaterExampleApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppUpdaterExampleApp.swift; sourceTree = "<group>"; };
 		698394602BDB8C58004B5C11 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -61,6 +63,7 @@
 			children = (
 				6983DB8C2C4EC0120033FE92 /* GithubProxy.swift */,
 				6983945E2BDB8C58004B5C11 /* AppUpdaterExampleApp.swift */,
+				692035472C5490460069C1ED /* AppUpdaterHelper.swift */,
 				698394602BDB8C58004B5C11 /* ContentView.swift */,
 				698394622BDB8C5A004B5C11 /* Assets.xcassets */,
 				698394672BDB8C5A004B5C11 /* AppUpdaterExample.entitlements */,
@@ -139,6 +142,8 @@
 				Base,
 			);
 			mainGroup = 698394522BDB8C58004B5C11;
+			packageReferences = (
+			);
 			productRefGroup = 6983945C2BDB8C58004B5C11 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -167,6 +172,7 @@
 			files = (
 				698394612BDB8C58004B5C11 /* ContentView.swift in Sources */,
 				6983DB8D2C4EC0120033FE92 /* GithubProxy.swift in Sources */,
+				692035482C5490460069C1ED /* AppUpdaterHelper.swift in Sources */,
 				6983945F2BDB8C58004B5C11 /* AppUpdaterExampleApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -311,7 +317,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 12.0;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				MARKETING_VERSION = 1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.gokoding.AppUpdaterExample;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -339,7 +345,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 12.0;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				MARKETING_VERSION = 1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.gokoding.AppUpdaterExample;
 				PRODUCT_NAME = "$(TARGET_NAME)";
