@@ -1,7 +1,9 @@
 # AppUpdater
 一款适用于 macOS 应用的更新检查库，可检查你的 GitHub 发行版中是否有新的二进制资产文件，并自动静默更新你的应用程序。
 
-![CleanShot 2024-04-26 at 18 49 42@2x](https://github.com/s1ntoneli/AppUpdater/assets/2681464/5cb7d9db-3b27-4b96-818e-0df57a012615)
+[English](./README.md) · **简体中文**
+
+https://github.com/user-attachments/assets/8bc9221d-365e-43ba-99d5-dc5cbd565959
 
 AppUpdater 是对 [mxcl](https://github.com/mxcl/AppUpdater) 的 [AppUpdater](https://github.com/mxcl/AppUpdater) 项目的重写，原因是我不想依赖它所使用的 PromiseKit，而更倾向于使用 async/await 来实现。
 
@@ -16,12 +18,13 @@ AppUpdater 是对 [mxcl](https://github.com/mxcl/AppUpdater) 的 [AppUpdater](ht
 * 在更新之前,我们会检查下载文件的代码签名是否与当前运行的应用程序匹配。所以如果你没有对应用程序进行代码签名，我不确定会发生什么情况
 * 我们支持 zip 文件和 tar 包
 * 我们支持代理参数,以便那些无法正常访问 GitHub 的地区的用户也能使用
+* 预置一个适用于 SwiftUI 的更新设置页
 
 ## 使用简单
 
 ### Swift 包管理器
 ```swift
-package.dependencies.append(.package(url: "https://github.com/s1ntoneli/AppUpdater.git", from: "0.1.5"))
+package.dependencies.append(.package(url: "https://github.com/s1ntoneli/AppUpdater.git", from: "0.1.7"))
 ```
 
 ### 初始化
@@ -48,7 +51,7 @@ appUpdater.install()
 
 **初始化、监听：** [AppUpdaterExampleApp.swift](https://github.com/s1ntoneli/AppUpdater/blob/main/Examples/AppUpdaterExample/AppUpdaterExample/AppUpdaterExampleApp.swift)
 
-**SwiftUI 用法：** [ContentView.swift](https://github.com/s1ntoneli/AppUpdater/blob/main/Examples/AppUpdaterExample/AppUpdaterExample/ContentView.swift)
+**SwiftUI 设置页：** [AppUpdaterSettings.swift](https://github.com/s1ntoneli/AppUpdater/blob/main/Examples/AppUpdaterExample/AppUpdaterExample/AppUpdaterSettings.swift)
 
 **实现自定义代理：** [GithubProxy.swift](https://github.com/s1ntoneli/AppUpdater/blob/main/Examples/AppUpdaterExample/AppUpdaterExample/GithubProxy.swift)
 
