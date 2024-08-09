@@ -79,7 +79,7 @@ public class AppUpdater: ObservableObject {
         activity.invalidate()
     }
 
-    private enum Error: Swift.Error {
+    public enum Error: Swift.Error {
         case bundleExecutableURL
         case codeSigningIdentity
         case invalidDownloadedBundle
@@ -132,14 +132,13 @@ public class AppUpdater: ObservableObject {
                 if csi1 == nil || csi2 == nil {
                     throw Error.codeSigningIdentity
                 }
+                aulog("compairing current: \(csi1) downloaded: \(csi2) equals? \(csi1 == csi2)")
                 return csi1 == csi2
             }
         }
 
         func update(with asset: Release.Asset, belongs release: Release) async throws -> Bundle? {
-            #if DEBUG
-            print("notice: AppUpdater dry-run:", asset)
-            #endif
+            aulog("notice: AppUpdater dry-run:", asset)
 
             let tmpdir = try FileManager.default.url(for: .itemReplacementDirectory, in: .userDomainMask, appropriateFor: Bundle.main.bundleURL, create: true)
 
@@ -168,24 +167,18 @@ public class AppUpdater: ObservableObject {
                 throw Error.downloadFailed
             }
             
-            #if DEBUG
-            print("notice: AppUpdater downloaded:", dst)
-            #endif
+            aulog("notice: AppUpdater downloaded:", dst)
 
             guard let unziped = try await unzip(dst, contentType: asset.content_type) else {
                 throw Error.unzipFailed
             }
             
-            #if DEBUG
-            print("notice: AppUpdater unziped", unziped)
-            #endif
+            aulog("notice: AppUpdater unziped", unziped)
             
             let downloadedAppBundle = Bundle(url: unziped)!
 
             if try await validate(codeSigning: .main, downloadedAppBundle) {
-                #if DEBUG
-                print("notice: AppUpdater validated", dst)
-                #endif
+                aulog("notice: AppUpdater validated", dst)
 
                 return downloadedAppBundle
             } else {
@@ -270,15 +263,14 @@ public struct Release: Decodable {
         return assets.first(where: { (asset) -> Bool in
             let prefix = "\(releasePrefix.lowercased())-\(tag_name)"
             let name = (asset.name as NSString).deletingPathExtension.lowercased()
+            let fileExtension = (asset.name as NSString).pathExtension
 
-            #if DEBUG
-            print("name, content_type, prefix", name, asset.content_type, prefix)
-            #endif
+            aulog("name, content_type, prefix, fileExtension", name, asset.content_type, prefix, fileExtension)
 
-            switch (name, asset.content_type) {
-            case ("\(prefix).tar", .tar):
+            switch (name, asset.content_type, fileExtension) {
+            case ("\(prefix).tar", .tar, "tar"):
                 return true
-            case (prefix, .zip):
+            case (prefix, .zip, "zip"):
                 return true
             default:
                 return false
@@ -316,10 +308,20 @@ extension Release: Comparable {
 
 private extension Array where Element == Release {
     func findViableUpdate(appVersion: Version, releasePrefix: String, prerelease: Bool) throws -> (Release, Release.Asset)? {
+        aulog(appVersion, "releasePrefix:", releasePrefix, "prerelease", prerelease, "in", self)
+        
         let suitableReleases = prerelease ? self : filter { !$0.prerelease }
+        aulog("found releases", suitableReleases)
+
         guard let latestRelease = suitableReleases.sorted().last else { return nil }
+        aulog("latestRelease", latestRelease)
+
         guard appVersion < latestRelease.tag_name else { throw AUError.cancelled }
+        aulog("\(appVersion) < \(latestRelease.tag_name)")
+
         guard let asset = latestRelease.viableAsset(forRelease: releasePrefix) else { return nil }
+        aulog("found asset", latestRelease, asset)
+
         return (latestRelease, asset)
     }
 }
@@ -358,7 +360,7 @@ private func unzip(_ url: URL, contentType: ContentType) async throws -> URL? {
     return try await findApp()
 }
 
-private extension Bundle {
+public extension Bundle {
     func isCodeSigned() async -> Bool {
         let proc = Process()
         proc.launchPath = "/usr/bin/codesign"
@@ -378,9 +380,7 @@ private extension Bundle {
         let result = errInfo.filter { $0.hasPrefix("Authority=") }
             .first.map { String($0.dropFirst(10)) }
         
-        #if DEBUG
-        print("result \(result)")
-        #endif
+        aulog("result \(result)")
         
         return result
     }

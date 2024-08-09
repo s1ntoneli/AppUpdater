@@ -11,9 +11,7 @@ extension URLSession {
     typealias TaskResult = (data: Data?, response: URLResponse?)
     
     func dataTask(with convertible: URLRequestConvertible, proxy: URLRequestProxy? = nil) async throws -> URLTaskResult? {
-        #if DEBUG
-        print("dataTask", convertible, convertible.request.applyOrOriginal(proxy: proxy))
-        #endif
+        aulog("dataTask", convertible, convertible.request.applyOrOriginal(proxy: proxy))
         
         return try await withCheckedThrowingContinuation { continuation in
             dataTask(with: convertible.request.applyOrOriginal(proxy: proxy)) { data, response, err in
@@ -27,9 +25,7 @@ extension URLSession {
     }
     
     func downloadTask(with convertible: URLRequestConvertible, to saveLocation: URL, proxy: URLRequestProxy? = nil) async throws -> AsyncThrowingStream<DownloadingState, Error> {
-        #if DEBUG
-        print("downloadTask", convertible, convertible.request.applyOrOriginal(proxy: proxy))
-        #endif
+        aulog("downloadTask", convertible, convertible.request.applyOrOriginal(proxy: proxy))
 
         return AsyncThrowingStream<DownloadingState, Error> { continuation in
             Task(priority: .userInitiated) { [weak self] in
