@@ -34,6 +34,10 @@ public class AppUpdater: ObservableObject {
     @MainActor
     @Published public var state: UpdateState = .none
     
+    /// all releases
+    @MainActor
+    @Published public var releases: [Release] = []
+
     public var onDownloadSuccess: OnSuccess? = nil
     public var onDownloadFail: OnFail? = nil
     
@@ -193,6 +197,8 @@ public class AppUpdater: ObservableObject {
         }
         let releases = try JSONDecoder().decode([Release].self, from: task.data)
 
+        notifyReleasesDidChange(releases)
+
         guard let (release, asset) = try releases.findViableUpdate(appVersion: currentVersion, releasePrefix: self.releasePrefix, prerelease: self.allowPrereleases) else {
             throw Error.noValidUpdate
         }
@@ -235,6 +241,12 @@ public class AppUpdater: ObservableObject {
     private func notifyStateChanged(newState: UpdateState) {
         Task { @MainActor in
             state = newState
+        }
+    }
+    
+    private func notifyReleasesDidChange(_ releases: [Release]) {
+        Task { @MainActor in
+            self.releases = releases
         }
     }
 }
