@@ -270,6 +270,25 @@ public struct Release: Decodable {
     
     let html_url: String
     public var htmlUrl: String { html_url }
+    
+    enum CodingKeys: CodingKey {
+        case tag_name
+        case prerelease
+        case assets
+        case body
+        case name
+        case html_url
+    }
+    
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.tag_name = (try? container.decodeIfPresent(Version.self, forKey: .tag_name)) ?? .null
+        self.prerelease = try container.decode(Bool.self, forKey: .prerelease)
+        self.assets = try container.decode([Release.Asset].self, forKey: .assets)
+        self.body = try container.decode(String.self, forKey: .body)
+        self.name = try container.decode(String.self, forKey: .name)
+        self.html_url = try container.decode(String.self, forKey: .html_url)
+    }
 
     func viableAsset(forRelease releasePrefix: String) -> Asset? {
         return assets.first(where: { (asset) -> Bool in
