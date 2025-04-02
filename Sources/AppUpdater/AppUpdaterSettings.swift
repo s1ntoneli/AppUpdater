@@ -36,14 +36,9 @@ public struct AppUpdateSettings: View {
                         Text("No Updates Available")
                     } else {
                         VStack(alignment: .leading) {
-                            Text("New Version Available")
-                            /// changelog
-                            if let changelog = updater.state.release?.body {
-                                Markdown {
-                                    changelog
-                                }
-                            }
                             HStack {
+                                Text("New Version Available")
+
                                 Spacer()
                                 Group {
                                     if case .newVersionDetected(_, _) = updater.state {
@@ -64,6 +59,12 @@ public struct AppUpdateSettings: View {
                                             Text("Update Now")
                                         }
                                     }
+                                }
+                            }
+                            /// changelog
+                            if let changelog = updater.state.release?.body {
+                                Markdown {
+                                    changelog
                                 }
                             }
                         }
@@ -93,6 +94,7 @@ public struct AppUpdateSettings: View {
                 }
             }
             .formStyle(.grouped)
+            .frame(maxHeight: 600)
         }
     }
     
