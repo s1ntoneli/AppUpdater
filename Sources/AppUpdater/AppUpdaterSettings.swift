@@ -79,18 +79,18 @@ public struct AppUpdateSettings: View {
                 ForEach(updater.releases.filter({ $0 != updater.state.release }), id: \.tagName) { release in
                     /// changelog
                     ReleaseRow(release: release)
-                        .background {
-                            GeometryReader {
-                                let frame = $0.frame(in: .global)
-                                Color.clear.onChange(of: frame.size) { newValue in
-                                    DispatchQueue.main.async {
-                                        withAnimation {
-                                            reader.scrollTo(0, anchor: .init(x: 0, y: -(frame.minY + newValue.height) ))
-                                        }
-                                    }
-                                }
-                            }
-                        }
+//                        .background {
+//                            GeometryReader {
+//                                let frame = $0.frame(in: .global)
+//                                Color.clear.onChange(of: frame.size) { newValue in
+//                                    DispatchQueue.main.async {
+//                                        withAnimation {
+//                                            reader.scrollTo(0, anchor: .init(x: 0, y: -(frame.minY + newValue.height) ))
+//                                        }
+//                                    }
+//                                }
+//                            }
+//                        }
                 }
             }
             .formStyle(.grouped)
