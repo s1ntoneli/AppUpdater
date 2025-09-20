@@ -1,0 +1,50 @@
+[
+  {
+    "tag_name": "2.0.0",
+    "prerelease": false,
+    "assets": [
+      {
+        "name": "AppUpdaterExample-2.0.0.zip",
+        "browser_download_url": "https://example.invalid/downloads/AppUpdaterExample-2.0.0.zip",
+        "content_type": "application/zip"
+      },
+      { "name": "CHANGELOG.zh-Hans.md", "browser_download_url": "https://example.invalid/changelogs/CHANGELOG.zh-Hans.md", "content_type": "text/plain" },
+      { "name": "CHANGELOG.zh-Hant.md", "browser_download_url": "https://example.invalid/changelogs/CHANGELOG.zh-Hant.md", "content_type": "text/plain" },
+      { "name": "CHANGELOG.en.md",     "browser_download_url": "https://example.invalid/changelogs/CHANGELOG.en.md",     "content_type": "text/plain" },
+      { "name": "CHANGELOG.ja.md",     "browser_download_url": "https://example.invalid/changelogs/CHANGELOG.ja.md",     "content_type": "text/plain" },
+      { "name": "CHANGELOG.fr.md",     "browser_download_url": "https://example.invalid/changelogs/CHANGELOG.fr.md",     "content_type": "text/plain" },
+      { "name": "CHANGELOG.de.md",     "browser_download_url": "https://example.invalid/changelogs/CHANGELOG.de.md",     "content_type": "text/plain" }
+    ],
+    "body": "",
+    "name": "v2.0.0",
+    "html_url": "https://github.com/example/AppUpdaterExample/releases/v2.0.0"
+  },
+  {
+    "tag_name": "1.2.3",
+    "prerelease": false,
+    "assets": [
+      {
+        "name": "AppUpdaterExample-1.2.3.zip",
+        "browser_download_url": "https://example.invalid/downloads/AppUpdaterExample-1.2.3.zip",
+        "content_type": "application/zip"
+      }
+    ],
+    "body": "\n<!-- au:lang=zh-Hans -->\n- 修复若干问题\n- 新增偏好设置项\n<!-- au:end -->\n\n<!-- au:lang=en -->\n- Fix several issues\n- Add a new preference option\n<!-- au:end -->\n",
+    "name": "v1.2.3",
+    "html_url": "https://github.com/example/AppUpdaterExample/releases/v1.2.3"
+  },
+  {
+    "tag_name": "1.1.0",
+    "prerelease": true,
+    "assets": [
+      {
+        "name": "AppUpdaterExample-1.1.0.zip",
+        "browser_download_url": "https://example.invalid/downloads/AppUpdaterExample-1.1.0.zip",
+        "content_type": "application/zip"
+      }
+    ],
+    "body": "<!-- au:default -->Beta build notes<!-- au:end -->",
+    "name": "v1.1.0-beta",
+    "html_url": "https://github.com/example/AppUpdaterExample/releases/v1.1.0-beta"
+  }
+]

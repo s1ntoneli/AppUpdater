@@ -142,7 +142,7 @@ public enum CRTHTTPError: Error, LocalizedError, CustomStringConvertible {
 }
 #endif
 
-enum DownloadingState {
+public enum DownloadingState {
     case progress(Progress)
     case finished(saveLocation: URL, response: URLResponse)
 }

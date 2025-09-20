@@ -14,18 +14,19 @@ struct ContentView: View {
     
     @State
     private var router: Routers = .general
+    @State
+    private var useMockProvider: Bool = UserDefaults.standard.bool(forKey: "useMockProvider")
+    @State
+    private var languagesText: String = ""
     
     var body: some View {
         NavigationView {
             List {
                 Section {
-                    if case .none = appUpdater.state {
-                    } else {
-                        Routers.appupdater.LinkTo {
-                            AppUpdateSettings()
-                        }
-                        .badgeCompact(1)
+                    Routers.appupdater.LinkTo {
+                        AppUpdateSettings()
                     }
+                    .modifier( stateBadgeModifier )
                 }
                 Section {
                     Routers.general.LinkTo {
@@ -44,15 +45,55 @@ struct ContentView: View {
             .listStyle(.sidebar)
             .frame(minWidth: 200)
         }
+        .onAppear { applyProviderFromDefaults() }
     }
     
     @ViewBuilder
     func GeneralSettings() -> some View {
         Text("General Settings")
+        Toggle("Use Mock Data", isOn: $useMockProvider)
+            .onChange(of: useMockProvider) { newValue in
+                UserDefaults.standard.set(newValue, forKey: "useMockProvider")
+                if newValue {
+                    appUpdater.provider = MockReleaseProvider()
+                    appUpdater.skipCodeSignValidation = true
+                } else {
+                    appUpdater.provider = GithubReleaseProvider()
+                    appUpdater.skipCodeSignValidation = false
+                }
+            }
+        Text("Provider: \(useMockProvider ? "Mock" : "GitHub")")
+        HStack {
+            Text("Changelog Languages (priority order):")
+            TextField("e.g., zh-Hans, en", text: $languagesText)
+                .textFieldStyle(.roundedBorder)
+                .frame(maxWidth: 320)
+            Button("Apply") {
+                let langs = languagesText.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+                appUpdater.preferredChangelogLanguages = langs
+            }
+            Button("Use System") {
+                languagesText = Locale.preferredLanguages.joined(separator: ", ")
+                appUpdater.preferredChangelogLanguages = Locale.preferredLanguages
+            }
+        }
         Button {
             appUpdater.check()
         } label: {
             Text("Check Updates")
+        }
+    }
+
+    /// Ensure the toggle reflects and applies provider on appear
+    func applyProviderFromDefaults() {
+        let newValue = UserDefaults.standard.bool(forKey: "useMockProvider")
+        useMockProvider = newValue
+        if newValue {
+            appUpdater.provider = MockReleaseProvider()
+            appUpdater.skipCodeSignValidation = true
+        } else {
+            appUpdater.provider = GithubReleaseProvider()
+            appUpdater.skipCodeSignValidation = false
         }
     }
 }
@@ -154,6 +195,20 @@ extension View {
                 .foregroundStyle(.white)
                 .padding(iconPadding)
         }
+    }
+}
+
+private extension ContentView {
+    var stateBadgeModifier: some ViewModifier {
+        struct ConditionalBadge: ViewModifier {
+            let hasUpdate: Bool
+            func body(content: Content) -> some View {
+                if hasUpdate { content.badgeCompact(1) } else { content }
+            }
+        }
+        return ConditionalBadge(hasUpdate: {
+            if case .none = appUpdater.state { return false } else { return true }
+        }())
     }
 }
 

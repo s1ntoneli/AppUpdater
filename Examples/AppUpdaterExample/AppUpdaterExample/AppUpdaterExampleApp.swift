@@ -50,9 +50,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
             .store(in: &cancellables)
         appUpdater.onDownloadSuccess = {
-            // do success things
+            // do success things; keep manual install via UI to avoid replacing the running app during tests
             print("download success")
-            appUpdater.install()
         }
         appUpdater.onDownloadFail = { err in
             // do failing things

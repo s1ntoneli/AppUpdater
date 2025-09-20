@@ -1,0 +1,22 @@
+{
+  "configurations": [
+    {
+      "type": "swift",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:AppUpdater}",
+      "name": "Debug AppUpdaterMockRunner",
+      "program": "${workspaceFolder:AppUpdater}/.build/debug/AppUpdaterMockRunner",
+      "preLaunchTask": "swift: Build Debug AppUpdaterMockRunner"
+    },
+    {
+      "type": "swift",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:AppUpdater}",
+      "name": "Release AppUpdaterMockRunner",
+      "program": "${workspaceFolder:AppUpdater}/.build/release/AppUpdaterMockRunner",
+      "preLaunchTask": "swift: Build Release AppUpdaterMockRunner"
+    }
+  ]
+}

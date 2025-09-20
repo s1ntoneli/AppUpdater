@@ -5,12 +5,14 @@ import PackageDescription
 
 let package = Package(
     name: "AppUpdater",
+    defaultLocalization: "en",
     platforms: [.macOS(.v12)],
     products: [
         // Products define the executables and libraries a package produces, making them visible to other packages.
         .library(
             name: "AppUpdater",
             targets: ["AppUpdater"]),
+        .executable(name: "AppUpdaterMockRunner", targets: ["AppUpdaterMockRunner"]) 
     ],
     dependencies: [
         .package(url: "https://github.com/mxcl/Version.git", .upToNextMajor(from: "2.0.1")),
@@ -26,6 +28,14 @@ let package = Package(
                 "Version",
                 .product(name: "Path", package: "Path.swift"),
                 .product(name: "MarkdownUI", package: "swift-markdown-ui"),
-            ]),
+            ],
+            resources: [
+                .process("Resources")
+            ]
+        ),
+        .executableTarget(
+            name: "AppUpdaterMockRunner",
+            dependencies: ["AppUpdater"]
+        )
     ]
 )
