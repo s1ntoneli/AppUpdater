@@ -18,6 +18,7 @@ public struct AppUpdateSettings: View {
     @AppStorage("betaUpdates")
     private var betaUpdates: Bool = false
     @State private var showDiagnostics: Bool = false
+    @State private var diagnosticsButtonVisible: Bool = false
     
     public init() {}
     
@@ -27,6 +28,10 @@ public struct AppUpdateSettings: View {
                 Section {
                     /// toggle beta updates
                     Toggle(NSLocalizedString("Beta Updates", bundle: .module, comment: ""), isOn: $betaUpdates)
+                        .contentShape(.rect)
+                        .onTapGesture(count: 10) {
+                            diagnosticsButtonVisible = true
+                        }
                         .onChange(of: betaUpdates) { newValue in
                             updater.allowPrereleases = newValue
                             updater.check()
@@ -95,7 +100,9 @@ public struct AppUpdateSettings: View {
             .formStyle(.grouped)
             .frame(maxHeight: 600)
             .overlay(alignment: .bottomTrailing) {
-                FloatingDiagnostics(show: $showDiagnostics)
+                if diagnosticsButtonVisible || isDebugBuild() {
+                    FloatingDiagnostics(show: $showDiagnostics)
+                }
             }
         }
     }
@@ -108,6 +115,14 @@ public struct AppUpdateSettings: View {
         } else {
             print("failed")
         }
+    }
+
+    private func isDebugBuild() -> Bool {
+        #if DEBUG
+        return true
+        #else
+        return false
+        #endif
     }
 }
 
