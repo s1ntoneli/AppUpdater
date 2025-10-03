@@ -37,7 +37,7 @@ Test: list localized changelog assets that would be uploaded
 [bundle exec] fastlane mac test_github_upload
 ```
 
-Test: create a GitHub release with only localized changelog assets
+Test: create a GitHub release with localized changelog assets and optional dmg/zip if present
 
 ----
 

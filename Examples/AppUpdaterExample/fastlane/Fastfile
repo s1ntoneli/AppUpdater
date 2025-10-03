@@ -97,6 +97,33 @@ platform :mac do
     files.uniq
   end
 
+  # Optionally include DMG/ZIP artifacts if they exist.
+  # If a tag is provided, prefer files whose names include the tag.
+  def find_optional_release_binaries(tag = nil)
+    build_roots = [
+      File.expand_path('../build', __dir__),
+      File.expand_path('build')
+    ].uniq
+
+    all_zips = build_roots.flat_map { |r| Dir.glob(File.join(r, '*.zip')) }
+    all_dmgs = build_roots.flat_map { |r| Dir.glob(File.join(r, '*.dmg')) }
+
+    pick_with_tag = lambda do |list|
+      return nil if list.empty?
+      candidates = if tag && !tag.to_s.empty?
+        list.select { |p| File.basename(p).include?(tag) }
+      else
+        list
+      end
+      candidates = list if candidates.empty?
+      candidates.max_by { |p| File.mtime(p) }
+    end
+
+    zip = pick_with_tag.call(all_zips)
+    dmg = pick_with_tag.call(all_dmgs)
+    [zip, dmg].compact.uniq
+  end
+
   desc "Push a new release build to the App Store"
 
   lane :release do |options|
@@ -205,7 +232,7 @@ platform :mac do
     end
   end
 
-  desc "Test: create a GitHub release with only localized changelog assets"
+  desc "Test: create a GitHub release with localized changelog assets and optional dmg/zip if present"
   lane :test_github_upload do |options|
     repo = ENV['GITHUB_REPOSITORY']
     token = ENV['FASTLANE_GITHUB_API_TOKEN']
@@ -220,13 +247,17 @@ platform :mac do
     assets = find_changelog_assets
     UI.user_error!("No localized changelog assets found to upload") if assets.empty?
 
+    # Optionally add dmg/zip artifacts if they exist (prefer matching the tag)
+    bin_assets = find_optional_release_binaries(tag)
+    upload_assets = (assets + bin_assets).uniq
+
     if dry
       UI.message("[DRY RUN] Would create GitHub release with:")
       UI.message("  repo: #{repo}")
       UI.message("  tag: #{tag}")
       UI.message("  prerelease: #{prerelease}")
       UI.message("  commitish: #{commitish}")
-      UI.message("  assets:\n- #{assets.join("\n- ")}")
+      UI.message("  assets:\n- #{upload_assets.join("\n- ")}")
     else
       set_github_release(
         repository_name: repo,
@@ -236,7 +267,7 @@ platform :mac do
         description: (File.read("changelog") rescue "Test upload of localized changelogs"),
         commitish: commitish,
         is_prerelease: prerelease,
-        upload_assets: assets
+        upload_assets: upload_assets
       )
     end
   end
