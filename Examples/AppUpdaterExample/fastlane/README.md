@@ -23,53 +23,21 @@ For _fastlane_ installation instructions, see [Installing _fastlane_](https://do
 
 Push a new release build to the App Store
 
-### mac notar
+### mac test_changelog_assets
 
 ```sh
-[bundle exec] fastlane mac notar
+[bundle exec] fastlane mac test_changelog_assets
 ```
 
+Test: list localized changelog assets that would be uploaded
 
-
-### mac test_dmg
+### mac test_github_upload
 
 ```sh
-[bundle exec] fastlane mac test_dmg
+[bundle exec] fastlane mac test_github_upload
 ```
 
-
-
-### mac test_dmg_fallback
-
-```sh
-[bundle exec] fastlane mac test_dmg_fallback
-```
-
-
-
-### mac test_mv
-
-```sh
-[bundle exec] fastlane mac test_mv
-```
-
-
-
-### mac sign_zip
-
-```sh
-[bundle exec] fastlane mac sign_zip
-```
-
-
-
-### mac local_dmg
-
-```sh
-[bundle exec] fastlane mac local_dmg
-```
-
-
+Test: create a GitHub release with only localized changelog assets
 
 ----
 

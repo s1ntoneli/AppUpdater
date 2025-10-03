@@ -66,6 +66,37 @@ platform :mac do
     end
   end
 
+  # Discover localized changelog files to upload with the release.
+  # Looks for files like CHANGELOG.<lang>.md/txt/markdown (case-insensitive),
+  # as well as lowercase variants. Also includes files named `changelog.*`.
+  def find_changelog_assets
+    fastlane_dir = __dir__
+    example_root = File.expand_path('..', fastlane_dir)
+    repo_root    = File.expand_path('../..', example_root)
+
+    search_roots = [fastlane_dir, example_root, repo_root]
+    patterns = [
+      'CHANGELOG.*.md', 'CHANGELOG.*.markdown', 'CHANGELOG.*.txt',
+      'Changelog.*.md', 'Changelog.*.markdown', 'Changelog.*.txt',
+      'changelog.*.md', 'changelog.*.markdown', 'changelog.*.txt',
+      # Include extension-less variants in fastlane dir (e.g., changelog.zh)
+      'changelog.*', 'CHANGELOG.*'
+    ]
+
+    files = []
+    search_roots.each do |root|
+      patterns.each do |pat|
+        Dir.glob(File.join(root, pat), File::FNM_CASEFOLD).each do |p|
+          next unless File.file?(p)
+          next if p.include?('/.git/')
+          files << File.expand_path(p)
+        end
+      end
+    end
+
+    files.uniq
+  end
+
   desc "Push a new release build to the App Store"
 
   lane :release do |options|
@@ -134,6 +165,20 @@ platform :mac do
 
     # tag 是否包含 beta 字段
     has_beta = tag.include?("beta")
+
+    # Resolve asset paths (absolute) to avoid working directory issues
+    zip_path = File.expand_path("../build/#{output_name_with_tag}.zip", __dir__)
+    dmg_abs_path = File.expand_path(dmgPath)
+
+    # Collect localized changelog files to attach to release
+    changelog_assets = find_changelog_assets
+    if changelog_assets.empty?
+      UI.message("No localized changelog assets found to attach")
+    else
+      UI.message("Attaching localized changelog assets: \n- #{changelog_assets.join("\n- ")}")
+    end
+
+    all_assets = [zip_path, dmg_abs_path] + changelog_assets
 	github_release = set_github_release(
       repository_name: ENV['GITHUB_REPOSITORY'],
       api_token: ENV['FASTLANE_GITHUB_API_TOKEN'],
@@ -142,12 +187,57 @@ platform :mac do
       description: (File.read("changelog") rescue "No changelog provided"),
       commitish: "main",
       is_prerelease: has_beta,
-      upload_assets: ["build/#{output_name_with_tag}.zip", dmgPath]
+      upload_assets: all_assets
     )
   end
 
    def sign_zip_command(zip_path)
     sh("codesign --sign 'Developer ID Application' '#{zip_path}'")
    end
-end
 
+  desc "Test: list localized changelog assets that would be uploaded"
+  lane :test_changelog_assets do
+    assets = find_changelog_assets
+    if assets.empty?
+      UI.message("No localized changelog assets found")
+    else
+      UI.message("Found localized changelog assets (#{assets.size}):\n- #{assets.join("\n- ")}")
+    end
+  end
+
+  desc "Test: create a GitHub release with only localized changelog assets"
+  lane :test_github_upload do |options|
+    repo = ENV['GITHUB_REPOSITORY']
+    token = ENV['FASTLANE_GITHUB_API_TOKEN']
+    UI.user_error!("GITHUB_REPOSITORY is Missing") if repo.to_s.empty?
+    UI.user_error!("FASTLANE_GITHUB_API_TOKEN is Missing") if token.to_s.empty?
+
+    tag = options[:tag] || Time.now.utc.strftime('test-upload-%Y%m%d%H%M%S')
+    commitish = options[:commitish] || 'main'
+    prerelease = options.key?(:prerelease) ? !!options[:prerelease] : true
+    dry = !!options[:dry_run]
+
+    assets = find_changelog_assets
+    UI.user_error!("No localized changelog assets found to upload") if assets.empty?
+
+    if dry
+      UI.message("[DRY RUN] Would create GitHub release with:")
+      UI.message("  repo: #{repo}")
+      UI.message("  tag: #{tag}")
+      UI.message("  prerelease: #{prerelease}")
+      UI.message("  commitish: #{commitish}")
+      UI.message("  assets:\n- #{assets.join("\n- ")}")
+    else
+      set_github_release(
+        repository_name: repo,
+        api_token: token,
+        name: tag,
+        tag_name: tag,
+        description: (File.read("changelog") rescue "Test upload of localized changelogs"),
+        commitish: commitish,
+        is_prerelease: prerelease,
+        upload_assets: assets
+      )
+    end
+  end
+end
