@@ -42,7 +42,7 @@ public extension Release {
         return sections.values.first ?? body
     }
 
-    private static func parseLanguageSections(from text: String) -> [String: String] {
+    static func parseLanguageSections(from text: String) -> [String: String] {
         var result: [String: String] = [:]
 
         // Pattern for <!-- au:lang=xx -->...<!-- au:end -->

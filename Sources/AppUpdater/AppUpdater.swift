@@ -157,7 +157,7 @@ public class AppUpdater: ObservableObject {
                 if csi1 == nil || csi2 == nil {
                     return skipCodeSignValidation
                 }
-                aulog("compairing current: \(csi1) downloaded: \(csi2) equals? \(csi1 == csi2)")
+                trace("compairing current: \(csi1) downloaded: \(csi2) equals? \(csi1 == csi2)")
                 return skipCodeSignValidation || (csi1 == csi2)
             }
         }
@@ -286,39 +286,78 @@ public class AppUpdater: ObservableObject {
     /// Try to load a localized changelog from release assets with naming like
     /// `CHANGELOG.<lang>.md|txt` (case-insensitive). Falls back to parsing the
     /// release body for embedded language blocks, then to original body.
+    ///
+    /// **Logic:**
+    /// For each preferred language (in order):
+    ///   1. Check if there's a matching asset file (e.g., CHANGELOG.zh.md)
+    ///   2. Check if there's a matching language block in body (<!-- au:lang=xx -->)
+    ///   3. If body has NO language blocks at all, treat entire body as that language's content
+    /// If no match found for any preferred language:
+    ///   - Fallback logic: default block > en block > first available > original body
     public func localizedChangelog(for release: Release) async -> String? {
-        // 1) Try language-specific attachment files
-        let candidates = languageCandidatesList(preferredChangelogLanguages)
-        let asset = findChangelogAsset(in: release.assets, candidates: candidates)
-        if let asset {
-            if let data = try? await provider.fetchAssetData(asset: asset, proxy: proxy),
-               let text = String(data: data, encoding: .utf8) {
-                return text.trimmingCharacters(in: .whitespacesAndNewlines)
+        // Parse body sections once
+        let sections = Release.parseLanguageSections(from: release.body)
+        let hasLanguageBlocks = !sections.isEmpty
+
+        // Try each preferred language in order
+        for lang in preferredChangelogLanguages {
+            let candidates = languageCandidates(for: lang)
+
+            // 1) Try asset file for this language
+            if let asset = findChangelogAsset(in: release.assets, candidates: candidates) {
+                if let data = try? await provider.fetchAssetData(asset: asset, proxy: proxy),
+                   let text = String(data: data, encoding: .utf8) {
+                    return text.trimmingCharacters(in: .whitespacesAndNewlines)
+                }
+            }
+
+            // 2) Try body section for this language (if language blocks exist)
+            if hasLanguageBlocks {
+                for candidate in candidates {
+                    if let matched = sections[candidate] {
+                        return matched
+                    }
+                }
+            } else {
+                // 3) No language blocks - treat entire body as base language
+                // Return body for the first preferred language (typically the base language)
+                return release.body.trimmingCharacters(in: .whitespacesAndNewlines)
             }
         }
-        // 2) Parse embedded blocks in body
-        return release.localizedBody(preferredLanguages: preferredChangelogLanguages)
+
+        // No match for any preferred language
+        if hasLanguageBlocks {
+            // Fallback: default block > en block > first available
+            if let def = sections["default"] { return def }
+            if let en = sections["en"] { return en }
+            return sections.values.first ?? release.body
+        } else {
+            // No language blocks - return original body
+            return release.body.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
     }
 
-    private func languageCandidatesList(_ langs: [String]) -> [String] {
+    private func languageCandidates(for raw: String) -> [String] {
         func normalize(_ raw: String) -> String {
             raw.replacingOccurrences(of: "_", with: "-").lowercased()
         }
-        func candidates(for raw: String) -> [String] {
-            var parts = normalize(raw).split(separator: "-").map(String.init)
-            if parts.first == "zh" {
-                if parts.contains("cn") || parts.contains("hans") { parts = ["zh", "hans"] }
-                if parts.contains("tw") || parts.contains("hk") || parts.contains("hant") { parts = ["zh", "hant"] }
-            }
-            var c: [String] = []
-            for i in stride(from: parts.count, through: 1, by: -1) {
-                c.append(parts[0..<i].joined(separator: "-"))
-            }
-            if let base = parts.first, !c.contains(base) { c.append(base) }
-            return c
+
+        var parts = normalize(raw).split(separator: "-").map(String.init)
+        if parts.first == "zh" {
+            if parts.contains("cn") || parts.contains("hans") { parts = ["zh", "hans"] }
+            if parts.contains("tw") || parts.contains("hk") || parts.contains("hant") { parts = ["zh", "hant"] }
         }
+        var c: [String] = []
+        for i in stride(from: parts.count, through: 1, by: -1) {
+            c.append(parts[0..<i].joined(separator: "-"))
+        }
+        if let base = parts.first, !c.contains(base) { c.append(base) }
+        return c
+    }
+
+    private func languageCandidatesList(_ langs: [String]) -> [String] {
         var list: [String] = []
-        for raw in langs { list.append(contentsOf: candidates(for: raw)) }
+        for raw in langs { list.append(contentsOf: languageCandidates(for: raw)) }
         // Ensure uniqueness preserving order
         var seen = Set<String>()
         return list.filter { seen.insert($0).inserted }
