@@ -1,0 +1,153 @@
+# This file contains the fastlane.tools configuration
+# You can find the documentation at https://docs.fastlane.tools
+#
+# For a list of all available actions, check out
+#
+#     https://docs.fastlane.tools/actions
+#
+# For a list of all available plugins, check out
+#
+#     https://docs.fastlane.tools/plugins/available-plugins
+#
+
+# Uncomment the line if you want fastlane to automatically update itself
+# update_fastlane
+fastlane_require 'dotenv'
+
+before_all do
+  Dotenv.overload '.env.secrets'
+end
+
+default_platform(:mac)
+
+platform :mac do
+  # Helper method to create DMG using local create-dmg if available, otherwise use dmg plugin
+  def create_dmg_with_fallback(app_path, output_path, volume_name)
+    create_dmg_path = File.expand_path("~/Library/pnpm/create-dmg")
+
+    if File.exist?(create_dmg_path)
+      puts "Using local create-dmg command"
+      # Create temporary directory
+      temp_dir = Dir.mktmpdir("dmg_build")
+      puts "Created temporary directory: #{temp_dir}"
+
+      # Convert app_path to absolute path from fastlane directory
+      absolute_app_path = File.expand_path("#{app_path}")
+      puts "App path: #{absolute_app_path}"
+
+      begin
+        # Run create-dmg command with output to temp directory
+        sh("~/Library/pnpm/create-dmg '#{absolute_app_path}' '#{temp_dir}';true")
+
+        # Check for DMG files in temp directory
+        dmg_files = Dir.glob(File.join(temp_dir, "*.dmg"))
+
+        if dmg_files.empty?
+          UI.error("No DMG files found in temporary directory, falling back to dmg plugin")
+          dmg(path: app_path, output_path: output_path, volume_name: volume_name)
+        else
+          dmg_path = dmg_files.first
+          puts "DMG created at: #{dmg_path}"
+          # Move DMG to desired output path (relative to fastlane directory)
+          final_path = File.expand_path("../#{output_path}")
+          sh("mv '#{dmg_path}' '#{final_path}'")
+          final_path
+        end
+      rescue => e
+        UI.error("Error creating DMG with local command: #{e.message}, falling back to dmg plugin")
+        dmg(path: app_path, output_path: output_path, volume_name: volume_name)
+      ensure
+        # Clean up temporary directory
+        FileUtils.rm_rf(temp_dir) if Dir.exist?(temp_dir)
+      end
+    else
+      puts "Local create-dmg not found, using dmg plugin"
+      dmg(path: app_path, output_path: output_path, volume_name: volume_name)
+    end
+  end
+
+  desc "Push a new release build to the App Store"
+
+  lane :release do |options|
+    setup_ci if ENV['CI']
+	tag = options[:tag]
+
+	raise 'Argument tag is Missing' if tag.to_s.empty?
+	raise 'FASTLANE_APP_ID is Missing' if ENV['FASTLANE_APP_ID'].nil?
+	raise 'FASTLANE_APPLE_ID is Missing' if ENV['FASTLANE_APPLE_ID'].nil?
+	raise 'FASTLANE_TEAM_ID is Missing' if ENV['FASTLANE_TEAM_ID'].nil?
+	raise 'FASTLANE_GITHUB_API_TOKEN is Missing' if ENV['FASTLANE_GITHUB_API_TOKEN'].nil?
+	raise 'FASTLANE_BUILD_SCHEME is Missing' if ENV['FASTLANE_BUILD_SCHEME'].nil?
+
+	#app_identifier = CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier)
+	#apple_id = CredentialsManager::AppfileConfig.try_fetch_value(:apple_id)
+	#team_id = CredentialsManager::AppfileConfig.try_fetch_value(:team_id)
+	app_identifier = ENV['FASTLANE_APP_ID']
+	apple_id = ENV['FASTLANE_APPLE_ID']
+	team_id = ENV['FASTLANE_TEAM_ID']
+
+	output_name=ENV['FASTLANE_OUTPUT_NAME'] || ENV['GITHUB_REPOSITORY'].split('/').last
+	output_package_prefix=ENV['FASTLANE_OUTPUT_PACKAGE_PREFIX'] || output_name
+	output_path="build"
+
+	output_name_with_tag="#{output_package_prefix}-#{tag}"
+	output_path_with_tag="#{output_path}/#{output_name_with_tag}"
+	puts("output path")
+	puts(output_path_with_tag)
+	puts(output_name_with_tag)
+
+	path=build_mac_app(
+        configuration: 'Release',
+		scheme: ENV['FASTLANE_BUILD_SCHEME'],
+        export_method: "developer-id",
+		output_directory: output_path,
+		output_name: output_name,
+		export_options: { signingStyle: "automatic", team_id: team_id }
+	)
+	puts("path:")
+	puts(path)
+	notarizedPath=notarize(
+      asc_provider: team_id,
+      username: apple_id,
+      print_log: true,
+      package: path,
+      verbose: false # Useful for showing notarization logs if it fails
+    )
+	puts("notarizedPath:")
+	puts(notarizedPath)
+	dmgPath=create_dmg_with_fallback(path, "#{output_path_with_tag}.dmg", output_name_with_tag)
+	puts("dmgPath")
+	puts(dmgPath)
+	notarize(
+      asc_provider: team_id,
+      username: apple_id,
+      print_log: true,
+      package: dmgPath,
+	  bundle_id: app_identifier,
+      verbose: false # Useful for showing notarization logs if it fail
+    )
+
+	sh("mv '../build/#{output_name}.app.zip' '../build/#{output_name_with_tag}.zip'")
+	puts('sign zip:')
+	puts("../build/#{output_name_with_tag}.zip")
+	sign_zip_command("../build/#{output_name_with_tag}.zip")
+
+    # tag 是否包含 beta 字段
+    has_beta = tag.include?("beta")
+	github_release = set_github_release(
+      repository_name: ENV['GITHUB_REPOSITORY'],
+      api_token: ENV['FASTLANE_GITHUB_API_TOKEN'],
+      name: tag,
+      tag_name: tag,
+      description: (File.read("changelog") rescue "No changelog provided"),
+      commitish: "main",
+      is_prerelease: has_beta,
+      upload_assets: ["build/#{output_name_with_tag}.zip", dmgPath]
+    )
+  end
+
+   def sign_zip_command(zip_path)
+    sh("codesign --sign 'Developer ID Application' '#{zip_path}'")
+   end
+end
+

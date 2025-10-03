@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="fastlane.lanes">
+    
+    
+    
+      
+      <testcase classname="fastlane.lanes" name="0: default_platform" time="0.000167">
+        
+      </testcase>
+    
+      
+      <testcase classname="fastlane.lanes" name="1: build_mac_app" time="36.387894">
+        
+      </testcase>
+    
+      
+      <testcase classname="fastlane.lanes" name="2: notarize" time="31.55935">
+        
+      </testcase>
+    
+      
+      <testcase classname="fastlane.lanes" name="3: ~/Library/pnpm/create-dmg &apos;/Users/lixindong/XcodeProjects/AppUpdater/Examples/AppUpdaterExample/build/AppUpdaterExample.app&apos; &apos;/var/folders/3n/vw643vjx34n8ngn52k57t08c0000gn/T/dmg_build20251003-5293-w4sc03&apos;;true" time="7.098853">
+        
+      </testcase>
+    
+      
+      <testcase classname="fastlane.lanes" name="4: mv &apos;/var/folders/3n/vw643vjx34n8ngn52k57t08c0000gn/T/dmg_build20251003-5293-w4sc03/AppUpdaterExample 1.dmg&apos; &apos;/Users/lixindong/XcodeProjects/AppUpdater/Examples/AppUpdaterExample/build/AppUpdaterExample-5.2.1.dmg&apos;" time="0.01087">
+        
+      </testcase>
+    
+      
+      <testcase classname="fastlane.lanes" name="5: notarize" time="31.121234">
+        
+      </testcase>
+    
+      
+      <testcase classname="fastlane.lanes" name="6: mv &apos;../build/AppUpdaterExample.app.zip&apos; &apos;../build/AppUpdaterExample-5.2.1.zip&apos;" time="0.007247">
+        
+      </testcase>
+    
+      
+      <testcase classname="fastlane.lanes" name="7: set_github_release" time="6.333344">
+        
+      </testcase>
+    
+  </testsuite>
+</testsuites>
