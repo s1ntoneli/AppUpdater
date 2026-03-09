@@ -109,7 +109,7 @@ let updater = AppUpdater(
   - `updater.entitlement`
   - `updater.notices`
 - `Release` now also decodes an optional `policy` payload, so existing update UIs can show post-install membership messaging without changing the download path.
-- See [docs/managed-feed-provider.md](docs/managed-feed-provider.md) for the full integration mode, backend response shape, and responsibilities split.
+- See [docs/managed-feed-provider.md](docs/managed-feed-provider.md) for the full integration mode, a host-app checklist, and concrete Swift examples.
 
 ## Localization
 
