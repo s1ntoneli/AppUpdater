@@ -81,6 +81,36 @@ updater.skipCodeSignValidation = true // recommended when using mocks
   - Changelog attachments: `CHANGELOG.<lang>.md` files in package resources
   - Simulated download: `MockReleaseProvider.download` streams progress and outputs a minimal `.app` inside a zip/tar as needed.
 
+## Managed Feed Provider
+
+- `ManagedReleaseProvider` keeps the existing `AppUpdater` download/install flow, but sources releases from your own backend feed instead of the GitHub Releases API.
+- This mode is useful when update delivery and premium-feature availability are separate concerns.
+- The expected response format remains `{ success, data, error }`, where `data.releases` still looks like GitHub releases and can additionally include:
+  - `entitlement`: membership or feature availability summary
+  - `policy`: per-release post-install policy summary
+  - `notices`: top-level notices for UI display
+
+A typical setup looks like this:
+
+```swift
+let updater = AppUpdater(
+    owner: "ignored",
+    repo: "ignored",
+    provider: ManagedReleaseProvider(
+        feedURL: URL(string: "https://example.com/api/public/app-updates/feed")!,
+        licenseProvider: { licenseKey },
+        deviceIdProvider: { deviceId },
+        platform: "macos"
+    )
+)
+```
+
+- `AppUpdater` exposes the extra managed-feed state through:
+  - `updater.entitlement`
+  - `updater.notices`
+- `Release` now also decodes an optional `policy` payload, so existing update UIs can show post-install membership messaging without changing the download path.
+- See [docs/managed-feed-provider.md](docs/managed-feed-provider.md) for the full integration mode, a host-app checklist, and concrete Swift examples.
+
 ## Localization
 
 - UI strings in `AppUpdaterSettings` are localized (English, Simplified Chinese). You may contribute more locales via `Sources/AppUpdater/Resources`.

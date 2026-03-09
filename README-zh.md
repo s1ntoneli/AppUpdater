@@ -81,6 +81,36 @@ updater.skipCodeSignValidation = true // 使用 Mock 时建议跳过签名校验
   - 多语言更新说明附件：包内的 `CHANGELOG.<lang>.md`
   - 模拟下载：`MockReleaseProvider.download` 按进度流式输出，并生成最小 `.app` 压缩包。
 
+## 托管 Feed Provider
+
+- `ManagedReleaseProvider` 允许你继续沿用 `AppUpdater` 现有的检查、下载、安装流程，但把 release 数据源改成你自己的后端 feed，而不是直接请求 GitHub Releases API。
+- 这个模式适合“App 是否可更新”和“会员功能是否可用”需要分开表达的产品。
+- 它期望的响应结构仍然是 `{ success, data, error }`，其中 `data.releases` 继续保持 GitHub release 风格，并可以额外包含：
+  - `entitlement`：会员/功能可用状态摘要
+  - `policy`：单个版本安装后的策略摘要
+  - `notices`：供 UI 直接展示的提示列表
+
+典型初始化方式如下：
+
+```swift
+let updater = AppUpdater(
+    owner: "ignored",
+    repo: "ignored",
+    provider: ManagedReleaseProvider(
+        feedURL: URL(string: "https://example.com/api/public/app-updates/feed")!,
+        licenseProvider: { licenseKey },
+        deviceIdProvider: { deviceId },
+        platform: "macos"
+    )
+)
+```
+
+- `AppUpdater` 会把托管 feed 的附加状态发布到：
+  - `updater.entitlement`
+  - `updater.notices`
+- `Release` 也会解码可选的 `policy` 字段，这样无需改下载主路径，也能在现有更新 UI 中展示“安装后会员功能是否可用”的说明。
+- 完整接入说明见 [docs/managed-feed-provider.zh.md](docs/managed-feed-provider.zh.md)，其中包含宿主 App 接入清单和 Swift 示例。
+
 ## 本地化（Localization）
 
 - UI 文案：`AppUpdaterSettings` 已本地化（英文、简体中文）。如需新增语言，在 `Sources/AppUpdater/Resources` 下添加 `*.lproj/Localizable.strings`。

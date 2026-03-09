@@ -69,6 +69,16 @@ public struct AppUpdateSettings: View {
                                     }
                                 }
                             }
+                            if let entitlement = updater.entitlement {
+                                Text(entitlement.statusMessage)
+                                    .font(.callout)
+                                    .foregroundStyle(entitlement.memberFeaturesActive ? Color.secondary : Color.orange)
+                            }
+                            if let policyMessage = updater.state.release?.policy?.message {
+                                Text(policyMessage)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
                             /// changelog
                             LocalizedChangelogView(release: updater.state.release)
                         }
@@ -78,6 +88,14 @@ public struct AppUpdateSettings: View {
                             Text(NSLocalizedString("More Info...", bundle: .module, comment: ""))
                         }
                         .buttonStyle(.link)
+                    }
+                }
+                if !updater.notices.isEmpty {
+                    Section {
+                        ForEach(Array(updater.notices.enumerated()), id: \.offset) { _, notice in
+                            Text(notice.message)
+                                .foregroundStyle(notice.level == "warning" ? .orange : .secondary)
+                        }
                     }
                 }
                 ForEach(updater.releases.filter({ $0 != updater.state.release }), id: \.tagName) { release in
@@ -279,6 +297,11 @@ struct ReleaseRow: View {
                 }
             }
             if showChangelog {
+                if let policyMessage = release.policy?.message {
+                    Text(policyMessage)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
                 LocalizedChangelogView(release: release)
                     .id(release.htmlUrl)
             }

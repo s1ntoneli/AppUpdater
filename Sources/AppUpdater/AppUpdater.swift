@@ -39,6 +39,14 @@ public class AppUpdater: ObservableObject {
     @MainActor
     @Published public var releases: [Release] = []
 
+    /// entitlement summary from a managed feed provider
+    @MainActor
+    @Published public var entitlement: ManagedReleaseFeed.Entitlement?
+
+    /// notices from a managed feed provider
+    @MainActor
+    @Published public var notices: [ManagedReleaseFeed.Notice] = []
+
     /// last error captured for diagnostics
     @MainActor
     @Published public var lastError: Swift.Error?
@@ -223,6 +231,7 @@ public class AppUpdater: ObservableObject {
         trace("fetched releases count:", releases.count)
 
         notifyReleasesDidChange(releases)
+        syncManagedFeedIfNeeded()
 
         guard let (release, asset) = try releases.findViableUpdate(appVersion: currentVersion, releasePrefix: self.releasePrefix, prerelease: self.allowPrereleases) else {
             trace("no viable update for", currentVersion.description, "prefix", self.releasePrefix, "prerelease", self.allowPrereleases)
@@ -278,6 +287,20 @@ public class AppUpdater: ObservableObject {
     private func notifyReleasesDidChange(_ releases: [Release]) {
         Task { @MainActor in
             self.releases = releases
+        }
+    }
+
+    private func syncManagedFeedIfNeeded() {
+        if let provider = provider as? ManagedReleaseFeedProviding {
+            Task { @MainActor in
+                self.entitlement = provider.lastFeed?.entitlement
+                self.notices = provider.lastFeed?.notices ?? []
+            }
+        } else {
+            Task { @MainActor in
+                self.entitlement = nil
+                self.notices = []
+            }
         }
     }
 
@@ -400,6 +423,7 @@ public struct Release: Decodable {
     public let assets: [Asset]
     public let body: String
     public let name: String
+    public let policy: ManagedReleasePolicy?
     
     let html_url: String
     public var htmlUrl: String { html_url }
@@ -410,6 +434,7 @@ public struct Release: Decodable {
         case assets
         case body
         case name
+        case policy
         case html_url
     }
     
@@ -420,6 +445,7 @@ public struct Release: Decodable {
         self.assets = try container.decode([Release.Asset].self, forKey: .assets)
         self.body = try container.decode(String.self, forKey: .body)
         self.name = try container.decode(String.self, forKey: .name)
+        self.policy = try container.decodeIfPresent(ManagedReleasePolicy.self, forKey: .policy)
         self.html_url = try container.decode(String.self, forKey: .html_url)
     }
 
