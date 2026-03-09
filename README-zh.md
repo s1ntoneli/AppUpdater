@@ -109,7 +109,7 @@ let updater = AppUpdater(
   - `updater.entitlement`
   - `updater.notices`
 - `Release` 也会解码可选的 `policy` 字段，这样无需改下载主路径，也能在现有更新 UI 中展示“安装后会员功能是否可用”的说明。
-- 完整接入说明见 [docs/managed-feed-provider.zh.md](docs/managed-feed-provider.zh.md)。
+- 完整接入说明见 [docs/managed-feed-provider.zh.md](docs/managed-feed-provider.zh.md)，其中包含宿主 App 接入清单和 Swift 示例。
 
 ## 本地化（Localization）
 
