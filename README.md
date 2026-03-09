@@ -84,10 +84,13 @@ updater.skipCodeSignValidation = true // recommended when using mocks
 ## Managed Feed Provider
 
 - `ManagedReleaseProvider` keeps the existing `AppUpdater` download/install flow, but sources releases from your own backend feed instead of the GitHub Releases API.
+- This mode is useful when update delivery and premium-feature availability are separate concerns.
 - The expected response format remains `{ success, data, error }`, where `data.releases` still looks like GitHub releases and can additionally include:
   - `entitlement`: membership or feature availability summary
   - `policy`: per-release post-install policy summary
   - `notices`: top-level notices for UI display
+
+A typical setup looks like this:
 
 ```swift
 let updater = AppUpdater(
@@ -106,6 +109,7 @@ let updater = AppUpdater(
   - `updater.entitlement`
   - `updater.notices`
 - `Release` now also decodes an optional `policy` payload, so existing update UIs can show post-install membership messaging without changing the download path.
+- See [docs/managed-feed-provider.md](docs/managed-feed-provider.md) for the full integration mode, backend response shape, and responsibilities split.
 
 ## Localization
 
