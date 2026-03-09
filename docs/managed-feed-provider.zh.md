@@ -68,21 +68,112 @@
 - `notices` 会暴露为 `updater.notices`
 - `policy` 会挂在每个 `Release` 上，便于在现有更新 UI 中展示“安装后会员功能是否可用”
 
+## App 端接入清单
+
+一个宿主 App 通常只需要完成这些步骤：
+
+1. 准备固定的后端 feed URL，例如 `/api/public/app-updates/feed`
+2. 通过 `licenseProvider` 提供当前 license key
+3. 通过 `deviceIdProvider` 提供稳定的设备 ID
+4. 如果你的版本来源不是 `Bundle.main.version`，再覆盖 `currentVersionProvider`
+5. 像以前一样调用 `updater.check()`
+6. 在 App 层对 `entitlement.statusCode`、`policy.code`、`notices[*].code` 做本地化
+7. 根据你的产品流打开 `cta.url`
+
 ## 典型初始化方式
 
 ```swift
-let updater = AppUpdater(
-    owner: "ignored",
-    repo: "ignored",
-    provider: ManagedReleaseProvider(
-        feedURL: URL(string: "https://example.com/api/public/app-updates/feed")!,
-        licenseProvider: { licenseKey },
-        currentVersionProvider: { Bundle.main.version.description },
-        deviceIdProvider: { deviceId },
-        platform: "macos"
-    )
-)
+final class UpdateCenter: ObservableObject {
+    static let shared = UpdateCenter()
+
+    let updater: AppUpdater
+
+    private init() {
+        updater = AppUpdater(
+            owner: "ignored",
+            repo: "ignored",
+            provider: ManagedReleaseProvider(
+                feedURL: URL(string: "https://example.com/api/public/app-updates/feed")!,
+                licenseProvider: { LicenseStore.shared.currentKey },
+                currentVersionProvider: { Bundle.main.version.description },
+                deviceIdProvider: { DeviceIdentity.shared.stableDeviceID },
+                platform: "macos"
+            )
+        )
+    }
+}
 ```
+
+## SwiftUI 宿主示例
+
+```swift
+struct UpdatesView: View {
+    @EnvironmentObject var updater: AppUpdater
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if let entitlement = updater.entitlement {
+                Text(localizedEntitlementText(for: entitlement.statusCode))
+                Text(entitlement.statusMessage)
+                    .foregroundStyle(.secondary)
+            }
+
+            ForEach(updater.notices, id: \.code) { notice in
+                Text(localizedNoticeText(for: notice.code))
+            }
+
+            if let release = updater.state.release,
+               let policy = release.policy {
+                Text(localizedPolicyText(for: policy.code))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Button("Check for Updates") {
+                updater.check()
+            }
+        }
+    }
+}
+```
+
+## 本地化建议
+
+建议把 `code` 作为主判断字段，把 `message` 作为兜底文案。
+
+推荐顺序：
+
+1. 先读取 `code`
+2. 在 App 内映射为本地化文案
+3. 如果本地还没有这个映射，再退回到后端给的 `message`
+
+典型字段包括：
+
+- `entitlement.statusCode`
+  - `MEMBER_FEATURES_ACTIVE`
+  - `MEMBER_FEATURES_EXPIRED`
+  - `FREE_FEATURES_LOCKED`
+- `release.policy.code`
+  - `INSTALL_ALLOWED_FEATURES_ACTIVE`
+  - `INSTALL_ALLOWED_FEATURES_EXPIRED`
+  - `INSTALL_ALLOWED_FEATURES_LOCKED`
+- `notices[*].code`
+  - `UPDATE_AVAILABLE`
+  - `ALREADY_UP_TO_DATE`
+  - `MEMBERSHIP_EXPIRED_AFTER_INSTALL`
+
+## 设备 ID 建议
+
+`deviceIdProvider` 应返回当前机器的稳定标识。
+
+推荐特征：
+
+- App 重启后保持不变
+- 不同机器之间不同
+- 存储在 Keychain 或其他持久化位置
+- 不要每次启动都重新生成
+
+如果你的应用已经有设备激活系统，建议直接复用同一个设备 ID。
 
 ## App 层通常还需要做什么
 
