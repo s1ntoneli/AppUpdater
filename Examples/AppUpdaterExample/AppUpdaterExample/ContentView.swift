@@ -11,14 +11,20 @@ import AppUpdater
 struct ContentView: View {
     @EnvironmentObject
     var appUpdater: AppUpdater
-    
+
     @State
     private var router: Routers = .general
     @State
-    private var useMockProvider: Bool = UserDefaults.standard.bool(forKey: "useMockProvider")
+    private var providerMode: ExampleProviderMode = AppUpdaterHelper.currentProviderMode()
     @State
     private var languagesText: String = ""
-    
+    @State
+    private var managedFeedURL: String = AppUpdaterHelper.storedManagedFeedURL()
+    @State
+    private var managedLicenseKey: String = AppUpdaterHelper.storedManagedLicenseKey()
+    @State
+    private var managedDeviceID: String = AppUpdaterHelper.storedManagedDeviceID()
+
     var body: some View {
         NavigationView {
             List {
@@ -26,7 +32,7 @@ struct ContentView: View {
                     Routers.appupdater.LinkTo {
                         AppUpdateSettings()
                     }
-                    .modifier( stateBadgeModifier )
+                    .modifier(stateBadgeModifier)
                 }
                 Section {
                     Routers.general.LinkTo {
@@ -47,54 +53,119 @@ struct ContentView: View {
         }
         .onAppear { applyProviderFromDefaults() }
     }
-    
+
     @ViewBuilder
     func GeneralSettings() -> some View {
-        Text("General Settings")
-        Toggle("Use Mock Data", isOn: $useMockProvider)
-            .onChange(of: useMockProvider) { newValue in
-                UserDefaults.standard.set(newValue, forKey: "useMockProvider")
-                if newValue {
-                    appUpdater.provider = MockReleaseProvider()
-                    appUpdater.skipCodeSignValidation = true
-                } else {
-                    appUpdater.provider = GithubReleaseProvider()
-                    appUpdater.skipCodeSignValidation = false
+        Form {
+            Section("Provider") {
+                Picker("Source", selection: $providerMode) {
+                    ForEach(ExampleProviderMode.allCases) { mode in
+                        Text(mode.title).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .onChange(of: providerMode) { newValue in
+                    AppUpdaterHelper.shared.updateProviderMode(newValue)
+                }
+
+                Text(providerMode.description)
+                    .foregroundStyle(.secondary)
+            }
+
+            if providerMode == .managed {
+                Section("Managed Feed") {
+                    TextField("Feed URL", text: $managedFeedURL)
+                        .textFieldStyle(.roundedBorder)
+                    TextField("License Key", text: $managedLicenseKey)
+                        .textFieldStyle(.roundedBorder)
+                    TextField("Device ID", text: $managedDeviceID)
+                        .textFieldStyle(.roundedBorder)
+                    HStack {
+                        Button("Apply Managed Settings") {
+                            AppUpdaterHelper.shared.updateManagedConfiguration(
+                                feedURL: managedFeedURL,
+                                licenseKey: managedLicenseKey,
+                                deviceID: managedDeviceID
+                            )
+                        }
+                        Spacer()
+                        Button("Reset Defaults") {
+                            managedFeedURL = AppUpdaterHelper.defaultManagedFeedURL
+                            managedLicenseKey = AppUpdaterHelper.defaultManagedLicenseKey
+                            managedDeviceID = AppUpdaterHelper.defaultManagedDeviceID
+                            AppUpdaterHelper.shared.updateManagedConfiguration(
+                                feedURL: managedFeedURL,
+                                licenseKey: managedLicenseKey,
+                                deviceID: managedDeviceID
+                            )
+                        }
+                    }
+                    Text("Use this mode to simulate a production app where the backend returns releases plus entitlement and policy metadata.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
                 }
             }
-        Text("Provider: \(useMockProvider ? "Mock" : "GitHub")")
-        HStack {
-            Text("Changelog Languages (priority order):")
-            TextField("e.g., zh-Hans, en", text: $languagesText)
-                .textFieldStyle(.roundedBorder)
-                .frame(maxWidth: 320)
-            Button("Apply") {
-                let langs = languagesText.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
-                appUpdater.preferredChangelogLanguages = langs
+
+            Section("Changelog") {
+                HStack {
+                    Text("Languages")
+                    TextField("e.g., zh-Hans, en", text: $languagesText)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(maxWidth: 320)
+                    Button("Apply") {
+                        let langs = languagesText.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+                        appUpdater.preferredChangelogLanguages = langs
+                    }
+                    Button("Use System") {
+                        languagesText = Locale.preferredLanguages.joined(separator: ", ")
+                        appUpdater.preferredChangelogLanguages = Locale.preferredLanguages
+                    }
+                }
             }
-            Button("Use System") {
-                languagesText = Locale.preferredLanguages.joined(separator: ", ")
-                appUpdater.preferredChangelogLanguages = Locale.preferredLanguages
+
+            Section("Managed Feed State") {
+                if let entitlement = appUpdater.entitlement {
+                    Text("Entitlement: \(entitlement.statusCode)")
+                    Text(entitlement.statusMessage)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text("No entitlement metadata loaded")
+                        .foregroundStyle(.secondary)
+                }
+
+                if appUpdater.notices.isEmpty {
+                    Text("No feed notices loaded")
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(Array(appUpdater.notices.enumerated()), id: \.offset) { _, notice in
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(notice.code)
+                                .font(.caption.weight(.semibold))
+                            Text(notice.message)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            }
+
+            Section {
+                Button {
+                    appUpdater.check()
+                } label: {
+                    Text("Check Updates")
+                }
             }
         }
-        Button {
-            appUpdater.check()
-        } label: {
-            Text("Check Updates")
-        }
+        .formStyle(.grouped)
     }
 
-    /// Ensure the toggle reflects and applies provider on appear
     func applyProviderFromDefaults() {
-        let newValue = UserDefaults.standard.bool(forKey: "useMockProvider")
-        useMockProvider = newValue
-        if newValue {
-            appUpdater.provider = MockReleaseProvider()
-            appUpdater.skipCodeSignValidation = true
-        } else {
-            appUpdater.provider = GithubReleaseProvider()
-            appUpdater.skipCodeSignValidation = false
-        }
+        providerMode = AppUpdaterHelper.currentProviderMode()
+        managedFeedURL = AppUpdaterHelper.storedManagedFeedURL()
+        managedLicenseKey = AppUpdaterHelper.storedManagedLicenseKey()
+        managedDeviceID = AppUpdaterHelper.storedManagedDeviceID()
+        AppUpdaterHelper.shared.applyStoredConfiguration()
     }
 }
 
@@ -102,39 +173,39 @@ enum Routers {
     case general
     case about
     case license
-    
+
     case appupdater
-    
+
     var name: String {
         switch self {
         case .general:
             return "General"
-        
+
         case .appupdater:
             return "Software Updates Available"
-            
+
         case .about:
             return "About"
         case .license:
             return "License"
         }
     }
-    
+
     var icon: String {
         switch self {
         case .general:
             return "gear"
-            
+
         case .appupdater:
             return ""
-            
+
         case .about:
             return "info"
         case .license:
             return "checkmark.seal.fill"
         }
     }
-    
+
     var iconBgColor: Color {
         switch self {
         case .general:
@@ -147,14 +218,14 @@ enum Routers {
             return Color.accentColor
         }
     }
-    
+
     @ViewBuilder func LinkTo(_ destination: () -> some View) -> some View {
         NavigationLink(destination: destination()) {
             SidebarLabel(name: self.name, icon: self.icon, color: self.iconBgColor)
         }
         .tag(self)
     }
-    
+
     @ViewBuilder
     func SidebarLabel(name: String, icon: String, color: Color) -> some View {
         HStack(spacing: 6) {
