@@ -4,3 +4,11 @@
 "Update Now" = "立即更新";
 "More Info..." = "了解更多…";
 "No Changelog Available" = "暂无更新日志";
+"app_updater.diagnostics.title" = "诊断";
+"app_updater.diagnostics.hide" = "隐藏诊断";
+"app_updater.diagnostics.enable_logs" = "启用日志";
+"app_updater.diagnostics.last_error" = "最近错误：%@";
+"app_updater.diagnostics.no_logs" = "还没有日志";
+"app_updater.diagnostics.clear_logs" = "清空日志";
+"app_updater.diagnostics.check_now" = "立即检查";
+"app_updater.download.progress" = "%d%%";

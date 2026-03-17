@@ -4,3 +4,11 @@
 "Update Now" = "Update Now";
 "More Info..." = "More Info...";
 "No Changelog Available" = "No changelog available";
+"app_updater.diagnostics.title" = "Diagnostics";
+"app_updater.diagnostics.hide" = "Hide Diagnostics";
+"app_updater.diagnostics.enable_logs" = "Enable Logs";
+"app_updater.diagnostics.last_error" = "Last Error: %@";
+"app_updater.diagnostics.no_logs" = "No logs yet";
+"app_updater.diagnostics.clear_logs" = "Clear Logs";
+"app_updater.diagnostics.check_now" = "Check Now";
+"app_updater.download.progress" = "%d%%";

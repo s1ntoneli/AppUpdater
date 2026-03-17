@@ -56,7 +56,7 @@ public struct AppUpdateSettings: View {
                                     if case .downloading(_, _, let fraction) = updater.state {
                                         Button {
                                         } label: {
-                                            Text("\(Int(fraction * 10000) / 100)%")
+                                            Text(String(format: NSLocalizedString("app_updater.download.progress", bundle: .module, comment: ""), Int(fraction * 10000) / 100))
                                         }
                                         .disabled(true)
                                     }
@@ -135,7 +135,7 @@ struct FloatingDiagnostics: View {
             if show {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
-                        Text("Diagnostics").font(.headline)
+                        Text(NSLocalizedString("app_updater.diagnostics.title", bundle: .module, comment: "")).font(.headline)
                         Spacer()
                         Button {
                             show = false
@@ -144,10 +144,10 @@ struct FloatingDiagnostics: View {
                         }
                         .buttonStyle(.plain)
                     }
-                    Toggle("Enable Logs", isOn: Binding(get: { updater.enableDebugInfo }, set: { updater.enableDebugInfo = $0 }))
+                    Toggle(NSLocalizedString("app_updater.diagnostics.enable_logs", bundle: .module, comment: ""), isOn: Binding(get: { updater.enableDebugInfo }, set: { updater.enableDebugInfo = $0 }))
                         .toggleStyle(.switch)
                     if let err = updater.lastError {
-                        Text("Last Error: \(String(describing: err))")
+                        Text(String(format: NSLocalizedString("app_updater.diagnostics.last_error", bundle: .module, comment: ""), String(describing: err)))
                             .font(.callout)
                             .foregroundStyle(.red)
                     }
@@ -155,7 +155,7 @@ struct FloatingDiagnostics: View {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 4) {
                             if updater.debugInfo.isEmpty {
-                                Text("No logs yet").foregroundStyle(.secondary)
+                                Text(NSLocalizedString("app_updater.diagnostics.no_logs", bundle: .module, comment: "")).foregroundStyle(.secondary)
                             } else {
                                 ForEach(Array(updater.debugInfo.enumerated()), id: \.offset) { _, line in
                                     Text(line)
@@ -167,9 +167,9 @@ struct FloatingDiagnostics: View {
                     }
                     .frame(width: 420, height: 180)
                     HStack {
-                        Button("Clear Logs") { updater.debugInfo.removeAll() }
+                        Button(NSLocalizedString("app_updater.diagnostics.clear_logs", bundle: .module, comment: "")) { updater.debugInfo.removeAll() }
                         Spacer()
-                        Button("Check Now") { updater.check() }
+                        Button(NSLocalizedString("app_updater.diagnostics.check_now", bundle: .module, comment: "")) { updater.check() }
                     }
                 }
                 .padding(10)
@@ -182,7 +182,7 @@ struct FloatingDiagnostics: View {
                         Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
                     }
                 }
-                Button(show ? "Hide Diagnostics" : "Diagnostics") { show.toggle() }
+                Button(show ? NSLocalizedString("app_updater.diagnostics.hide", bundle: .module, comment: "") : NSLocalizedString("app_updater.diagnostics.title", bundle: .module, comment: "")) { show.toggle() }
             }
             .padding(.trailing, 6)
         }
@@ -197,10 +197,10 @@ struct DiagnosticsView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text("Diagnostics")
+                Text(NSLocalizedString("app_updater.diagnostics.title", bundle: .module, comment: ""))
                     .font(.headline)
                 Spacer()
-                Toggle("Enable Logs", isOn: Binding(get: {
+                Toggle(NSLocalizedString("app_updater.diagnostics.enable_logs", bundle: .module, comment: ""), isOn: Binding(get: {
                     updater.enableDebugInfo
                 }, set: { updater.enableDebugInfo = $0 }))
                 .toggleStyle(.switch)
@@ -208,13 +208,13 @@ struct DiagnosticsView: View {
             }
 
             if let err = updater.lastError {
-                Text("Last Error: \(String(describing: err))")
+                Text(String(format: NSLocalizedString("app_updater.diagnostics.last_error", bundle: .module, comment: ""), String(describing: err)))
                     .font(.callout)
                     .foregroundStyle(.red)
             }
 
             if updater.debugInfo.isEmpty {
-                Text("No logs yet")
+                Text(NSLocalizedString("app_updater.diagnostics.no_logs", bundle: .module, comment: ""))
                     .foregroundStyle(.secondary)
             } else {
                 ScrollView {
@@ -229,9 +229,9 @@ struct DiagnosticsView: View {
             }
 
             HStack {
-                Button("Clear Logs") { updater.debugInfo.removeAll() }
+                Button(NSLocalizedString("app_updater.diagnostics.clear_logs", bundle: .module, comment: "")) { updater.debugInfo.removeAll() }
                 Spacer()
-                Button("Check Now") { updater.check() }
+                Button(NSLocalizedString("app_updater.diagnostics.check_now", bundle: .module, comment: "")) { updater.check() }
             }
         }
     }
