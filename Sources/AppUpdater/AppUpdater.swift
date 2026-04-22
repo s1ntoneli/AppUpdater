@@ -150,6 +150,14 @@ public class AppUpdater: ObservableObject {
         let currentVersion = Bundle.main.version
 
         func validate(codeSigning b1: Bundle, _ b2: Bundle) async throws -> Bool {
+            let currentSignatureValid = await b1.codeSignatureIsValid()
+            let downloadedSignatureValid = await b2.codeSignatureIsValid()
+
+            trace("codesign verify current:", currentSignatureValid, "downloaded:", downloadedSignatureValid)
+            guard currentSignatureValid, downloadedSignatureValid else {
+                return skipCodeSignValidation
+            }
+
             do {
                 let csi1 = try? await b1.codeSigningIdentity()
                 let csi2 = try? await b2.codeSigningIdentity()
@@ -504,8 +512,11 @@ private func unzip(_ url: URL, contentType: ContentType) async throws -> URL? {
         proc.launchPath = "/usr/bin/tar"
         proc.arguments = ["xf", url.path]
     case .zip:
-        proc.launchPath = "/usr/bin/unzip"
-        proc.arguments = [url.path]
+        // `unzip` may materialize AppleDouble sidecars like `._foo.png`
+        // inside `.app` bundles, which breaks the sealed resource signature.
+        // `ditto -x -k` matches Archive Utility behavior and keeps app bundles valid.
+        proc.launchPath = "/usr/bin/ditto"
+        proc.arguments = ["-x", "-k", url.path, url.deletingLastPathComponent().path]
     default:
         throw AUError.badInput
     }
@@ -520,7 +531,22 @@ private func unzip(_ url: URL, contentType: ContentType) async throws -> URL? {
         return nil
     }
 
+    func removeExtractionArtifacts(in root: URL) throws {
+        guard let enumerator = FileManager.default.enumerator(at: root, includingPropertiesForKeys: [.isDirectoryKey]) else {
+            return
+        }
+
+        for case let candidate as URL in enumerator {
+            let name = candidate.lastPathComponent
+            if name == "__MACOSX" || name.hasPrefix("._") {
+                try? FileManager.default.removeItem(at: candidate)
+                enumerator.skipDescendants()
+            }
+        }
+    }
+
     let _ = try await proc.launching()
+    try removeExtractionArtifacts(in: url.deletingLastPathComponent())
     return try await findApp()
 }
 
@@ -529,6 +555,13 @@ public extension Bundle {
         let proc = Process()
         proc.launchPath = "/usr/bin/codesign"
         proc.arguments = ["-dv", bundlePath]
+        return (try? await proc.launching()) != nil
+    }
+
+    func codeSignatureIsValid() async -> Bool {
+        let proc = Process()
+        proc.launchPath = "/usr/bin/codesign"
+        proc.arguments = ["--verify", "--deep", "--strict", "--verbose=2", bundlePath]
         return (try? await proc.launching()) != nil
     }
 
