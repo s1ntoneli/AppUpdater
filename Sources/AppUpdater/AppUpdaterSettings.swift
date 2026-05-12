@@ -98,6 +98,8 @@ public struct AppUpdateSettings: View {
                 }
             }
             .formStyle(.grouped)
+            .scrollContentBackground(.hidden)
+            .background(Color(nsColor: .windowBackgroundColor))
             .frame(maxHeight: 600)
             .overlay(alignment: .bottomTrailing) {
                 if diagnosticsButtonVisible || isDebugBuild() {
