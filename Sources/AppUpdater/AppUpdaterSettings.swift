@@ -23,10 +23,9 @@ public struct AppUpdateSettings: View {
     public init() {}
     
     public var body: some View {
-        ScrollViewReader { reader in
+        ScrollViewReader { _ in
             Form {
                 Section {
-                    /// toggle beta updates
                     Toggle(NSLocalizedString("Beta Updates", bundle: .module, comment: ""), isOn: $betaUpdates)
                         .contentShape(.rect)
                         .onTapGesture(count: 10) {
@@ -36,10 +35,10 @@ public struct AppUpdateSettings: View {
                             updater.allowPrereleases = newValue
                             updater.check()
                         }
-                }
-                Section {
+
                     if case .none = updater.state {
                         Text(NSLocalizedString("No Updates Available", bundle: .module, comment: ""))
+                            .foregroundStyle(.secondary)
                     } else {
                         VStack(alignment: .leading) {
                             HStack {
@@ -80,26 +79,14 @@ public struct AppUpdateSettings: View {
                         .buttonStyle(.link)
                     }
                 }
-                ForEach(updater.releases.filter({ $0 != updater.state.release }), id: \.tagName) { release in
-                    /// changelog
-                    ReleaseRow(release: release)
-//                        .background {
-//                            GeometryReader {
-//                                let frame = $0.frame(in: .global)
-//                                Color.clear.onChange(of: frame.size) { newValue in
-//                                    DispatchQueue.main.async {
-//                                        withAnimation {
-//                                            reader.scrollTo(0, anchor: .init(x: 0, y: -(frame.minY + newValue.height) ))
-//                                        }
-//                                    }
-//                                }
-//                            }
-//                        }
+                Section {
+                    ForEach(updater.releases.filter({ $0 != updater.state.release }), id: \.tagName) { release in
+                        ReleaseRow(release: release)
+                    }
                 }
             }
             .formStyle(.grouped)
             .scrollContentBackground(.hidden)
-            .background(Color(nsColor: .windowBackgroundColor))
             .frame(maxHeight: 600)
             .overlay(alignment: .bottomTrailing) {
                 if diagnosticsButtonVisible || isDebugBuild() {
@@ -268,11 +255,14 @@ struct ReleaseRow: View {
     @State private var showChangelog = false
     
     var body: some View {
-        Section {
+        VStack(alignment: .leading, spacing: 0) {
             HStack {
                 Text(release.tagName.description)
+                    .font(.body)
                 Spacer()
                 Image(systemName: showChangelog ? "chevron.down" : "chevron.right")
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(.secondary)
             }
             .contentShape(.rect)
             .onTapGesture {
@@ -280,10 +270,14 @@ struct ReleaseRow: View {
                     showChangelog.toggle()
                 }
             }
+
             if showChangelog {
                 LocalizedChangelogView(release: release)
                     .id(release.htmlUrl)
+                    .font(.callout)
+                    .padding(.top, 8)
             }
         }
+        .padding(.vertical, showChangelog ? 4 : 0)
     }
 }
