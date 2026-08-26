@@ -138,6 +138,10 @@ AppUpdater selects the best match from `AppUpdater.preferredChangelogLanguages` 
 
 - Run: `swift run AppUpdaterMockRunner --langs=fr,ja,en`
 - Prints state transitions and the localized changelog (prefers attachments, then body blocks).
+- ScreenSage production-asset regression:
+  - Apple Silicon: `swift run --disable-sandbox AppUpdaterMockRunner --live-screensage`
+  - Intel/Rosetta: `/usr/bin/arch -x86_64 /usr/bin/swift run --disable-sandbox --triple x86_64-apple-macosx14.0 --scratch-path /private/tmp/screensage-appupdater-x86_64-build AppUpdaterMockRunner --live-screensage`
+  - The live mode uses the production GitHub proxy, downloads the architecture-specific release ZIP, unpacks it, checks the main app and bundled Pi architectures, and verifies the downloaded app signature. It does not replace the installed app.
 
 ## Troubleshooting
 

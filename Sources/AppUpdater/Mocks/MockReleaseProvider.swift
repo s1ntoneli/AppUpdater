@@ -136,11 +136,25 @@ public final class MockReleaseProvider: ReleaseProvider {
     }
 
     private func shellZip(contentsOf dir: URL, into dst: URL) async throws {
+        // `zip` silently appends `.zip` when the destination has no extension.
+        // AppUpdater intentionally downloads to a file named `download`, so
+        // archive to an explicit temporary .zip and then preserve the exact
+        // destination path promised by ReleaseProvider.
+        let archiveURL = dst.pathExtension.lowercased() == "zip"
+            ? dst
+            : dst.appendingPathExtension("zip")
+        try? FileManager.default.removeItem(at: archiveURL)
+
         let proc = Process()
         proc.launchPath = "/usr/bin/zip"
         proc.currentDirectoryPath = dir.path
-        proc.arguments = ["-r", dst.path, "."]
+        proc.arguments = ["-q", "-r", archiveURL.path, "."]
         let _ = try await proc.launching()
+
+        if archiveURL != dst {
+            try? FileManager.default.removeItem(at: dst)
+            try FileManager.default.moveItem(at: archiveURL, to: dst)
+        }
     }
 
     private func shellTar(contentsOf dir: URL, into dst: URL) async throws {
