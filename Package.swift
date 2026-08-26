@@ -36,6 +36,10 @@ let package = Package(
         .executableTarget(
             name: "AppUpdaterMockRunner",
             dependencies: ["AppUpdater"]
+        ),
+        .testTarget(
+            name: "AppUpdaterTests",
+            dependencies: ["AppUpdater"]
         )
     ]
 )

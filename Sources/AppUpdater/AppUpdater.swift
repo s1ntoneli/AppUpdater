@@ -12,6 +12,21 @@ import Foundation
 import Version
 import Path
 
+enum AppArchitecture: String {
+    case arm64
+    case x86_64
+
+    static var current: AppArchitecture {
+#if arch(arm64)
+        return .arm64
+#elseif arch(x86_64)
+        return .x86_64
+#else
+#error("AppUpdater supports only arm64 and x86_64 macOS builds.")
+#endif
+    }
+}
+
 public class AppUpdater: ObservableObject {
     public typealias OnSuccess = () -> Void
     public typealias OnFail = (Swift.Error) -> Void
@@ -431,23 +446,44 @@ public struct Release: Decodable {
         self.html_url = try container.decode(String.self, forKey: .html_url)
     }
 
-    func viableAsset(forRelease releasePrefix: String) -> Asset? {
-        return assets.first(where: { (asset) -> Bool in
-            let prefix = "\(releasePrefix.lowercased())-\(tag_name)"
-            let name = (asset.name as NSString).deletingPathExtension.lowercased()
-            let fileExtension = (asset.name as NSString).pathExtension
+    func viableAsset(
+        forRelease releasePrefix: String,
+        preferredArchitecture: AppArchitecture = .current
+    ) -> Asset? {
+        let prefix = "\(releasePrefix.lowercased())-\(tag_name)"
+        let preferredNames = [
+            "\(prefix)-\(preferredArchitecture.rawValue)",
+            // Transitional fallback for releases produced before the split.
+            prefix
+        ]
 
-            aulog("name, content_type, prefix, fileExtension", name, asset.content_type, prefix, fileExtension)
+        for preferredName in preferredNames {
+            if let asset = assets.first(where: { asset in
+                let name = (asset.name as NSString).deletingPathExtension.lowercased()
+                let fileExtension = (asset.name as NSString).pathExtension.lowercased()
 
-            switch (name, asset.content_type, fileExtension) {
-            case ("\(prefix).tar", .tar, "tar"):
-                return true
-            case (prefix, .zip, "zip"):
-                return true
-            default:
-                return false
+                aulog(
+                    "name, content_type, preferredName, fileExtension",
+                    name,
+                    asset.content_type,
+                    preferredName,
+                    fileExtension
+                )
+
+                switch (name, asset.content_type, fileExtension) {
+                case ("\(preferredName).tar", .tar, "tar"):
+                    return true
+                case (preferredName, .zip, "zip"):
+                    return true
+                default:
+                    return false
+                }
+            }) {
+                return asset
             }
-        })
+        }
+
+        return nil
     }
 }
 
