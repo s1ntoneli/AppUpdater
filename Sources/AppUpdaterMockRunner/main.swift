@@ -1,5 +1,6 @@
 import Foundation
 import AppUpdater
+import AppKit
 import Combine
 import Darwin
 
@@ -11,13 +12,57 @@ private final class ScreenSageGithubProxy: URLRequestProxy {
 
 @main
 struct Runner {
-    static func main() async {
-        let args = ProcessInfo.processInfo.arguments.dropFirst()
+    static func main() {
+        let args = Array(ProcessInfo.processInfo.arguments.dropFirst())
         if args.contains("--live-screensage") {
-            await runLiveScreenSageUpdateCheck()
+            let expectedVersion = args
+                .first { $0.hasPrefix("--expected-version=") }?
+                .replacingOccurrences(of: "--expected-version=", with: "")
+            let installDisposable = args.contains("--install-disposable")
+            if installDisposable {
+                let application = NSApplication.shared
+                let delegate = DisposableInstallDelegate(expectedVersion: expectedVersion)
+                application.delegate = delegate
+                application.setActivationPolicy(.prohibited)
+                application.run()
+            } else {
+                Task {
+                    await runLiveScreenSageUpdateCheck(
+                        expectedVersion: expectedVersion,
+                        installDisposable: false
+                    )
+                    exit(0)
+                }
+                dispatchMain()
+            }
             return
         }
 
+        Task {
+            await runMockUpdateCheck(args: args)
+            exit(0)
+        }
+        dispatchMain()
+    }
+
+    private final class DisposableInstallDelegate: NSObject, NSApplicationDelegate {
+        private let expectedVersion: String?
+
+        init(expectedVersion: String?) {
+            self.expectedVersion = expectedVersion
+        }
+
+        func applicationDidFinishLaunching(_ notification: Notification) {
+            Task {
+                await Runner.runLiveScreenSageUpdateCheck(
+                    expectedVersion: expectedVersion,
+                    installDisposable: true
+                )
+            }
+        }
+    }
+
+    private static func runMockUpdateCheck(args: [String]) async {
         print("[MockRunner] Starting mock update check…")
         let updater = AppUpdater(owner: "mock", repo: "mock", releasePrefix: "AppUpdaterExample", interval: 24*60*60, proxy: nil, provider: MockReleaseProvider())
         updater.skipCodeSignValidation = true
@@ -66,7 +111,10 @@ struct Runner {
         print("[MockRunner] Done.")
     }
 
-    private static func runLiveScreenSageUpdateCheck() async {
+    private static func runLiveScreenSageUpdateCheck(
+        expectedVersion: String?,
+        installDisposable: Bool
+    ) async {
 #if arch(arm64)
         let expectedArchitecture = "arm64"
 #elseif arch(x86_64)
@@ -95,6 +143,12 @@ struct Runner {
             for _ in 0..<50 {
                 let state = await MainActor.run { updater.state }
                 if case .downloaded(let release, let asset, let bundle) = state {
+                    if let expectedVersion, release.tagName.description != expectedVersion {
+                        throw LiveRunnerError.unexpectedVersion(
+                            expected: expectedVersion,
+                            actual: release.tagName.description
+                        )
+                    }
                     guard asset.name == "ScreenSage-\(release.tagName)-\(expectedArchitecture).zip" else {
                         throw LiveRunnerError.unexpectedAsset(asset.name)
                     }
@@ -131,6 +185,15 @@ struct Runner {
                     print("[LiveRunner] Pi: \(piDescription)")
                     print("[LiveRunner] Signature: valid, JDZMWLF652")
                     print("[LiveRunner] PASS")
+
+                    if installDisposable {
+                        try validateDisposableInstallTarget()
+                        print("[LiveRunner] Installing into disposable bundle: \(Bundle.main.bundleURL.path)")
+                        fflush(stdout)
+                        try await MainActor.run {
+                            try updater.installThrowing(bundle)
+                        }
+                    }
                     return
                 }
                 try await Task.sleep(nanoseconds: 100_000_000)
@@ -161,6 +224,21 @@ struct Runner {
         return description
     }
 
+    private static func validateDisposableInstallTarget() throws {
+        let environment = ProcessInfo.processInfo.environment
+        guard let allowedPath = environment["APPUPDATER_DISPOSABLE_INSTALL_BUNDLE"] else {
+            throw LiveRunnerError.unsafeInstallTarget("missing APPUPDATER_DISPOSABLE_INSTALL_BUNDLE")
+        }
+
+        let bundleURL = Bundle.main.bundleURL.standardizedFileURL
+        let allowedURL = URL(fileURLWithPath: allowedPath).standardizedFileURL
+        guard bundleURL == allowedURL,
+              bundleURL.pathExtension == "app",
+              !bundleURL.path.hasPrefix("/Applications/") else {
+            throw LiveRunnerError.unsafeInstallTarget(bundleURL.path)
+        }
+    }
+
     private static func codeSigningDescription(at url: URL) throws -> String {
         let process = Process()
         let output = Pipe()
@@ -179,9 +257,11 @@ struct Runner {
     }
 
     private enum LiveRunnerError: Error {
+        case unexpectedVersion(expected: String, actual: String)
         case unexpectedAsset(String)
         case invalidSignature
         case unexpectedSigningIdentity(String)
+        case unsafeInstallTarget(String)
         case missingExecutable
         case unexpectedArchitecture(app: String, pi: String)
         case missingDownloadedState

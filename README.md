@@ -142,6 +142,8 @@ AppUpdater selects the best match from `AppUpdater.preferredChangelogLanguages` 
   - Apple Silicon: `swift run --disable-sandbox AppUpdaterMockRunner --live-screensage`
   - Intel/Rosetta: `/usr/bin/arch -x86_64 /usr/bin/swift run --disable-sandbox --triple x86_64-apple-macosx14.0 --scratch-path /private/tmp/screensage-appupdater-x86_64-build AppUpdaterMockRunner --live-screensage`
   - The live mode uses the production GitHub proxy, downloads the architecture-specific release ZIP, unpacks it, checks the main app and bundled Pi architectures, and verifies the downloaded app signature. It does not replace the installed app.
+  - Add `--expected-version=<version>` to require an exact release instead of accepting whichever stable release is latest.
+  - CI can add `--install-disposable` only from a disposable `.app` whose exact path is repeated in `APPUPDATER_DISPOSABLE_INSTALL_BUNDLE`. The runner refuses `/Applications`; this mode exercises AppUpdater's real replacement, relaunch, and post-update smoke path without touching an installed app.
 
 ## Troubleshooting
 
