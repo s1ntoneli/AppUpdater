@@ -410,6 +410,9 @@ public class AppUpdater: ObservableObject {
 public struct Release: Decodable {
     let tag_name: Version
     public var tagName: Version { tag_name }
+    /// Original GitHub tag, preserved even when it is not strict SemVer
+    /// (for example `preview-0.3.0` or `test-0.2.9`).
+    public let rawTagName: String
     
     public let prerelease: Bool
     public struct Asset: Decodable {
@@ -438,7 +441,8 @@ public struct Release: Decodable {
     
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.tag_name = (try? container.decodeIfPresent(Version.self, forKey: .tag_name)) ?? .null
+        self.rawTagName = (try? container.decode(String.self, forKey: .tag_name)) ?? "0.0.0"
+        self.tag_name = Version(rawTagName) ?? .null
         self.prerelease = try container.decode(Bool.self, forKey: .prerelease)
         self.assets = try container.decode([Release.Asset].self, forKey: .assets)
         self.body = try container.decode(String.self, forKey: .body)
