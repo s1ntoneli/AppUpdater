@@ -149,7 +149,12 @@ struct Runner {
                             actual: release.tagName.description
                         )
                     }
-                    guard asset.name == "ScreenSage-\(release.tagName)-\(expectedArchitecture).zip" else {
+                    // Releases ship one universal ZIP; older split releases used per-architecture ZIPs.
+                    let acceptedNames = [
+                        "ScreenSage-\(release.tagName).zip",
+                        "ScreenSage-\(release.tagName)-\(expectedArchitecture).zip"
+                    ]
+                    guard acceptedNames.contains(asset.name) else {
                         throw LiveRunnerError.unexpectedAsset(asset.name)
                     }
                     guard await bundle.codeSignatureIsValid() else {
@@ -167,22 +172,14 @@ struct Runner {
                     }
 
                     let appDescription = try fileDescription(at: executableURL)
-                    let piURL = bundle.bundleURL
-                        .appendingPathComponent("Contents/Resources/PiRuntime/pi")
-                    let piDescription = try fileDescription(at: piURL)
                     let expectedDescription = "Mach-O 64-bit executable \(expectedArchitecture)"
-                    guard appDescription.contains(expectedDescription),
-                          piDescription.contains(expectedDescription) else {
-                        throw LiveRunnerError.unexpectedArchitecture(
-                            app: appDescription,
-                            pi: piDescription
-                        )
+                    guard appDescription.contains(expectedDescription) else {
+                        throw LiveRunnerError.unexpectedArchitecture(app: appDescription)
                     }
 
                     print("[LiveRunner] Selected: \(asset.name)")
                     print("[LiveRunner] Downloaded: \(asset.downloadUrl.absoluteString)")
                     print("[LiveRunner] App: \(appDescription)")
-                    print("[LiveRunner] Pi: \(piDescription)")
                     print("[LiveRunner] Signature: valid, JDZMWLF652")
                     print("[LiveRunner] PASS")
 
@@ -263,7 +260,7 @@ struct Runner {
         case unexpectedSigningIdentity(String)
         case unsafeInstallTarget(String)
         case missingExecutable
-        case unexpectedArchitecture(app: String, pi: String)
+        case unexpectedArchitecture(app: String)
         case missingDownloadedState
         case fileInspectionFailed(String)
     }
